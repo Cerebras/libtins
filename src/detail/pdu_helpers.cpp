@@ -60,37 +60,43 @@ Tins::PDU* pdu_from_flag(Constants::Ethernet::e flag,
                          const uint8_t* buffer,
                          uint32_t size,
                          bool rawpdu_on_no_match) {
-    switch (flag) {
-        case Tins::Constants::Ethernet::IP:
-            return new IP(buffer, size);
-        case Constants::Ethernet::IPV6:
-            return new IPv6(buffer, size);
-        case Tins::Constants::Ethernet::ARP:
-            return new ARP(buffer, size);
-        case Tins::Constants::Ethernet::PPPOED:
-        case Tins::Constants::Ethernet::PPPOES:
-            return new PPPoE(buffer, size);
-        case Tins::Constants::Ethernet::EAPOL:
-            return EAPOL::from_bytes(buffer, size);
-        case Tins::Constants::Ethernet::VLAN:
-        case Tins::Constants::Ethernet::QINQ:
-        case Tins::Constants::Ethernet::OLD_QINQ:
-            return new Dot1Q(buffer, size);
-        case Tins::Constants::Ethernet::MPLS:
-            return new MPLS(buffer, size);
-        default:
-            {
-                PDU* pdu = Internals::allocate<EthernetII>(
-                    static_cast<uint16_t>(flag),
-                    buffer,
-                    size
-                );
-                if (pdu) {
-                    return pdu;
+    try {
+        switch (flag) {
+            case Tins::Constants::Ethernet::IP:
+                return new IP(buffer, size);
+            case Constants::Ethernet::IPV6:
+                return new IPv6(buffer, size);
+            case Tins::Constants::Ethernet::ARP:
+                return new ARP(buffer, size);
+            case Tins::Constants::Ethernet::PPPOED:
+            case Tins::Constants::Ethernet::PPPOES:
+                return new PPPoE(buffer, size);
+            case Tins::Constants::Ethernet::EAPOL:
+                return EAPOL::from_bytes(buffer, size);
+            case Tins::Constants::Ethernet::VLAN:
+            case Tins::Constants::Ethernet::QINQ:
+            case Tins::Constants::Ethernet::OLD_QINQ:
+                return new Dot1Q(buffer, size);
+            case Tins::Constants::Ethernet::MPLS:
+                return new MPLS(buffer, size);
+            default:
+                {
+                    PDU* pdu = Internals::allocate<EthernetII>(
+                        static_cast<uint16_t>(flag),
+                        buffer,
+                        size
+                        );
+                    if (pdu) {
+                        return pdu;
+                    }
                 }
-            }
-            return rawpdu_on_no_match ? new RawPDU(buffer, size) : 0;
-    };
+        }
+    }
+    catch (const malformed_packet &e) {
+        /* Continue to return statement below. */
+    }
+
+    return rawpdu_on_no_match ? new RawPDU(buffer, size) : 0;
 }
 
 Tins::PDU* pdu_from_flag(Constants::IP::e flag,
