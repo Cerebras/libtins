@@ -251,7 +251,11 @@ TEST_F(TCPTest, Serialize) {
     TCP tcp1(expected_packet, sizeof(expected_packet));
     PDU::serialization_type buffer = tcp1.serialize();
     ASSERT_EQ(buffer.size(), sizeof(expected_packet));
-    EXPECT_TRUE(std::equal(buffer.begin(), buffer.end(), expected_packet));
+
+    //EXPECT_TRUE(std::equal(buffer.begin(), buffer.end(), expected_packet));
+    for (size_t i = 0; i < buffer.size(); i++) {
+            EXPECT_EQ(buffer[i], expected_packet[i]) << "i = " << i;
+    }
 }
 
 TEST_F(TCPTest, SpoofedOptions) {
