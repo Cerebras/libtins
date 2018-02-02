@@ -514,7 +514,28 @@ public:
      * \sa PDU::header_size
      */
     uint32_t header_size() const;
+
+    /**
+     * \brief Calculate pseudoheader checksum for this segment.
+     *
+     * The calculation is done without modifying the contents of this header
+     * or its parent's header.
+     * 
+     * \return 32-bit pseudoheader checksum.
+     */
+    uint32_t calculate_pseudoheader_checksum() const;
     
+    /**
+     * \brief Calculate TCP checksum for this segment.
+     *
+     * The calculation is done without modifying the contents of the header.
+     * This can be used to check if the segment's checksum is valid by comparing
+     * the result with checksum().
+     * 
+     * \return 16-bit TCP checksum.
+     */
+    uint16_t calculate_checksum() const;
+
     /**
      * \brief Check whether ptr points to a valid response for this PDU.
      *
@@ -523,7 +544,7 @@ public:
      * \param total_sz The size of the buffer.
      */
     bool matches_response(const uint8_t* ptr, uint32_t total_sz) const;
-
+    
     /**
      * \brief Getter for the PDU's type.
      *
@@ -613,7 +634,7 @@ private:
     options_type::const_iterator search_option_iterator(OptionTypes type) const;
     options_type::iterator search_option_iterator(OptionTypes type);
     
-    void write_option(const option& opt, Memory::OutputMemoryStream& stream);
+    void write_option(const option& opt, Memory::OutputMemoryStream& stream) const;
 
     options_type options_;
     tcp_header header_;

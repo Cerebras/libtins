@@ -353,7 +353,7 @@ IP::options_type::iterator IP::search_option_iterator(option_identifier id) {
     return Internals::find_option<option>(options_, id);
 }
 
-void IP::write_option(const option& opt, OutputMemoryStream& stream) {
+void IP::write_option(const option& opt, OutputMemoryStream& stream) const {
     stream.write(opt.option());
     // Check what we wrote. We'll do this for any option != [END, NOOP]
     if (*(stream.pointer() - 1) > NOOP) {
@@ -409,6 +409,26 @@ PDU* IP::recv_response(PacketSender& sender, const NetworkInterface &) {
     return sender.recv_l3(*this, 0, sizeof(link_addr), type);
 }
 
+uint16_t IP::calculate_checksum() const {
+    vector<uint8_t> buffer_vec(header_size(), 0);
+    OutputMemoryStream stream(buffer_vec);
+    auto buffer = &buffer_vec.front();
+    
+    stream.write(header_);
+
+    for (const auto &option : options_) {
+        write_option(option, stream);
+    }
+
+    // No need to pad options, because 0 bytes don't affect checksum.
+    
+    // Zero-out existing checksum before calculation
+    ((ip_header*)buffer)->check = 0;
+
+    uint16_t check = Utils::do_checksum(buffer, stream.pointer());
+    return ~check;
+}
+
 void IP::prepare_for_serialize() {
     if (!parent_pdu()&& header_.saddr == 0) {
         NetworkInterface iface(dst_addr());
@@ -458,10 +478,7 @@ void IP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
     // Add option padding
     stream.fill(padded_options_size - options_size, 0);
 
-    uint32_t check = Utils::do_checksum(buffer, stream.pointer());
-    while (check >> 16) {
-        check = (check & 0xffff) + (check >> 16);
-    }
+    uint16_t check = Utils::do_checksum(buffer, stream.pointer());
     checksum(~check);
     ((ip_header*)buffer)->check = header_.check;
 }

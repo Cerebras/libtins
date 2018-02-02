@@ -50,7 +50,7 @@ namespace Utils {
  * \return Returns the checksum between start and end (non inclusive) 
  * in network endian
  */
-TINS_API uint32_t do_checksum(const uint8_t* start, const uint8_t* end);
+TINS_API uint16_t do_checksum(const uint8_t* start, const uint8_t* end);
 
 /** 
  * \brief Computes the 16 bit sum of the input buffer.

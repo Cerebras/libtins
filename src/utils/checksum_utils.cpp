@@ -42,8 +42,8 @@ using Tins::Memory::OutputMemoryStream;
 namespace Tins {
 namespace Utils {
 
-uint32_t do_checksum(const uint8_t* start, const uint8_t* end) {
-    return Endian::host_to_be<uint32_t>(sum_range(start, end));
+uint16_t do_checksum(const uint8_t* start, const uint8_t* end) {
+    return Endian::host_to_be<uint16_t>(sum_range(start, end));
 }
 
 uint16_t sum_range(const uint8_t* start, const uint8_t* end) {

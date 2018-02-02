@@ -707,6 +707,17 @@ public:
     PDU* recv_response(PacketSender& sender, const NetworkInterface &);
 
     /**
+     * \brief Calculate header checksum for this packet.
+     *
+     * The calculation is done without modifying the contents of the header.
+     * This can be used to check if the packet's checksum is valid by comparing
+     * the result with checksum().
+     * 
+     * \return 16-bit header checksum.
+     */
+    uint16_t calculate_checksum() const;
+
+    /**
      * Indicates whether this PDU is fragmented.
      *
      * \return true if this PDU is fragmented, false otherwise.
@@ -758,7 +769,7 @@ private:
     uint32_t pad_options_size(uint32_t size) const;
     void init_ip_fields();
     void write_serialization(uint8_t* buffer, uint32_t total_sz);
-    void write_option(const option& opt, Memory::OutputMemoryStream& stream);
+    void write_option(const option& opt, Memory::OutputMemoryStream& stream) const;
     void add_route_option(option_identifier id, const generic_route_option_type& data);
     generic_route_option_type search_route_option(option_identifier id) const;
     void checksum(uint16_t new_check);

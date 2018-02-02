@@ -28,6 +28,7 @@
  */
 
 #include <cstring>
+#include <memory>
 #include <tins/tcp.h>
 #include <tins/ip.h>
 #include <tins/ipv6.h>
@@ -39,6 +40,7 @@
 
 using std::vector;
 using std::pair;
+using std::unique_ptr;
 
 using Tins::Memory::InputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
@@ -295,12 +297,79 @@ uint32_t TCP::header_size() const {
     return sizeof(header_) + pad_options_size(calculate_options_size());
 }
 
+uint32_t TCP::calculate_pseudoheader_checksum() const {
+    uint32_t check = 0;
+    const PDU* parent = parent_pdu();
+    if (const Tins::IP* ip_packet = tins_cast<const Tins::IP*>(parent)) {
+        check = Utils::pseudoheader_checksum(
+            ip_packet->src_addr(),  
+            ip_packet->dst_addr(), 
+            size(),
+            Constants::IP::PROTO_TCP
+            );
+    }
+    else if (const Tins::IPv6* ipv6_packet = tins_cast<const Tins::IPv6*>(parent)) {
+        check = Utils::pseudoheader_checksum(
+            ipv6_packet->src_addr(),  
+            ipv6_packet->dst_addr(), 
+            size(), 
+            Constants::IP::PROTO_TCP
+            );
+    }
+    else {
+        check = 0; //XXX in the old code, the entire checksum is 0 if the
+                   //XXX pseudoheader is not available.
+    }
+
+    return check;
+}
+
+uint16_t TCP::calculate_checksum() const {
+    vector<uint8_t> buffer_vec(header_size(), 0);
+    OutputMemoryStream stream(buffer_vec);
+    auto buffer = &buffer_vec.front();
+
+    stream.write(header_);
+
+    for (const auto &option : options_) {
+        write_option(option, stream);
+    }
+
+    // No need to pad options, because 0 bytes don't affect checksum.
+    
+    // Zero-out existing checksum before calculation
+    ((tcp_header*)buffer)->check = 0;
+
+    // TCP checksum is:
+    // pseudoheader checksum + TCP header checksum + payload checksum.
+    uint32_t check =
+        calculate_pseudoheader_checksum() +
+        Utils::sum_range(buffer, stream.pointer());
+
+    // serialize() doesn't have a const version, so clone the inner PDU
+    // and serialize that.
+    unique_ptr<PDU> inner_pdu_clone(inner_pdu()->clone());
+    auto payload = inner_pdu_clone->serialize();
+    
+    if (payload.size() > 0) {
+        check += Utils::sum_range(&payload.front(), &payload.back() + 1);
+    }
+
+    // Convert this 32-bit value into a 16-bit value
+    while (check >> 16) {
+        check = (check & 0xffff) + (check >> 16);
+    }
+
+    return Endian::host_to_be<uint16_t>(~check);
+}
+        
 void TCP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
     OutputMemoryStream stream(buffer, total_sz);
     const uint32_t options_size = calculate_options_size();
     const uint32_t total_options_size = pad_options_size(options_size);
     // Set checksum to 0, we'll calculate it at the end
     checksum(0);
+    
     header_.doff = (sizeof(tcp_header) + total_options_size) / sizeof(uint32_t);
     stream.write(header_);
     for (options_type::const_iterator it = options_.begin(); it != options_.end(); ++it) {
@@ -311,32 +380,16 @@ void TCP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
         const uint16_t padding = total_options_size - options_size;
         stream.fill(padding, 1);
     }
+    
+    uint32_t check =
+         calculate_pseudoheader_checksum() +
+         Utils::sum_range(buffer, buffer + total_sz);
 
-    uint32_t check = 0;
-    const PDU* parent = parent_pdu();
-    if (const Tins::IP* ip_packet = tins_cast<const Tins::IP*>(parent)) {
-        check = Utils::pseudoheader_checksum(
-            ip_packet->src_addr(),  
-            ip_packet->dst_addr(), 
-            size(), 
-            Constants::IP::PROTO_TCP
-        ) + Utils::sum_range(buffer, buffer + total_sz);
-    }
-    else if (const Tins::IPv6* ipv6_packet = tins_cast<const Tins::IPv6*>(parent)) {
-        check = Utils::pseudoheader_checksum(
-            ipv6_packet->src_addr(),  
-            ipv6_packet->dst_addr(), 
-            size(), 
-            Constants::IP::PROTO_TCP
-        ) + Utils::sum_range(buffer, buffer + total_sz);
-    }
-    else {
-        return;
-    }
     // Convert this 32-bit value into a 16-bit value
     while (check >> 16) {
             check = (check & 0xffff) + (check >> 16);
     }
+
     checksum(Endian::host_to_be<uint16_t>(~check));
     ((tcp_header*)buffer)->check = header_.check;
 }
@@ -357,7 +410,7 @@ TCP::options_type::iterator TCP::search_option_iterator(OptionTypes type) {
 
 /* options */
 
-void TCP::write_option(const option& opt, OutputMemoryStream& stream) {
+void TCP::write_option(const option& opt, OutputMemoryStream& stream) const {
     stream.write<uint8_t>(opt.option());
     // Only do this for non EOL nor NOP options 
     if (opt.option() > 1) {
