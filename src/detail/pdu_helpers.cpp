@@ -103,30 +103,32 @@ Tins::PDU* pdu_from_flag(Constants::IP::e flag,
                          const uint8_t* buffer,
                          uint32_t size,
                          bool rawpdu_on_no_match) {
-    switch (flag) {
-        case Constants::IP::PROTO_IPIP:
-            return new Tins::IP(buffer, size);
-        case Constants::IP::PROTO_TCP:
-            return new Tins::TCP(buffer, size);
-        case Constants::IP::PROTO_UDP:
-            return new Tins::UDP(buffer, size);
-        case Constants::IP::PROTO_ICMP:
-            return new Tins::ICMP(buffer, size);
-        case Constants::IP::PROTO_ICMPV6:
-            return new Tins::ICMPv6(buffer, size);
-        case Constants::IP::PROTO_IPV6:
-            return new Tins::IPv6(buffer, size);
-        case Constants::IP::PROTO_AH:
-            return new Tins::IPSecAH(buffer, size);
-        case Constants::IP::PROTO_ESP:
-            return new Tins::IPSecESP(buffer, size);
-        default:
-            break;
+    try {
+        switch (flag) {
+            case Constants::IP::PROTO_IPIP:
+                return new Tins::IP(buffer, size);
+            case Constants::IP::PROTO_TCP:
+                return new Tins::TCP(buffer, size);
+            case Constants::IP::PROTO_UDP:
+                return new Tins::UDP(buffer, size);
+            case Constants::IP::PROTO_ICMP:
+                return new Tins::ICMP(buffer, size);
+            case Constants::IP::PROTO_ICMPV6:
+                return new Tins::ICMPv6(buffer, size);
+            case Constants::IP::PROTO_IPV6:
+                return new Tins::IPv6(buffer, size);
+            case Constants::IP::PROTO_AH:
+                return new Tins::IPSecAH(buffer, size);
+            case Constants::IP::PROTO_ESP:
+                return new Tins::IPSecESP(buffer, size);
+            default:
+                break;
+        }
     }
-    if (rawpdu_on_no_match) {
-        return new Tins::RawPDU(buffer, size);
+    catch (const malformed_packet &e) {
+        /* Continue to return statement below. */
     }
-    return 0;
+    return rawpdu_on_no_match ? new RawPDU(buffer, size) : 0;
 }
 
 #ifdef TINS_HAVE_PCAP
