@@ -73,7 +73,13 @@ EthernetII::EthernetII(const address_type& dst_hw_addr,
 
 EthernetII::EthernetII(const uint8_t* buffer, uint32_t total_sz) {
     InputMemoryStream stream(buffer, total_sz);
-    stream.read(header_);
+    try {
+        stream.read(header_);
+    }
+    catch (const insufficient_data &) {
+        malformed(true);
+        return;
+    }
     // If there's any size left
     if (stream) {
         inner_pdu(

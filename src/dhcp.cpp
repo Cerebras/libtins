@@ -63,7 +63,8 @@ DHCP::DHCP(const uint8_t* buffer, uint32_t total_sz)
     stream.skip(BootP::header_size() - vend().size());
     const uint32_t magic_number = stream.read<uint32_t>();
     if (magic_number != Endian::host_to_be<uint32_t>(0x63825363)) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
     // While there's data left
     while (stream) {
@@ -76,7 +77,8 @@ DHCP::DHCP(const uint8_t* buffer, uint32_t total_sz)
         }
         // Make sure we can read the payload size
         if (!stream.can_read(option_length)) {
-            throw malformed_packet();
+            malformed(true);
+            return;
         }
         add_option(option(option_type, option_length, stream.pointer()));
         stream.skip(option_length);

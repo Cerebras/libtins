@@ -48,14 +48,23 @@ IPSecAH::IPSecAH()
 
 IPSecAH::IPSecAH(const uint8_t* buffer, uint32_t total_sz) {
     InputMemoryStream stream(buffer, total_sz);
-    stream.read(header_);
+    try {
+        stream.read(header_);
+    }
+    catch (const insufficient_data &) {
+        malformed(true);
+        return;
+    }
+
     const uint32_t ah_len = 4 * (static_cast<uint16_t>(length()) + 2);
     if (ah_len < sizeof(header_)) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
     const uint32_t icv_length = ah_len - sizeof(header_);
     if (!stream.can_read(icv_length)) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
     stream.read(icv_, icv_length);
     if (stream) {

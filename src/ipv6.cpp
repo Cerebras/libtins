@@ -122,7 +122,13 @@ IPv6::IPv6(address_type ip_dst, address_type ip_src, PDU* /*child*/)
 
 IPv6::IPv6(const uint8_t* buffer, uint32_t total_sz) {
     InputMemoryStream stream(buffer, total_sz);
-    stream.read(header_);
+    try {
+        stream.read(header_);
+    }
+    catch (const insufficient_data &) {
+        malformed(true);
+        return;
+    }
     uint8_t current_header = header_.next_header;
     uint32_t actual_payload_length = payload_length();
     bool is_payload_fragmented = false;
@@ -137,7 +143,8 @@ IPv6::IPv6(const uint8_t* buffer, uint32_t total_sz) {
             const uint32_t ext_size = (static_cast<uint32_t>(stream.read<uint8_t>()) + 1) * 8;
             const uint32_t payload_size = ext_size - sizeof(uint8_t) * 2;
             if (!stream.can_read(payload_size)) {
-                throw malformed_packet();
+                malformed(true);
+                return;
             }
             // Add a header using the current header type (e.g. what we saw as the next
             // header type in the previous)
@@ -153,7 +160,8 @@ IPv6::IPv6(const uint8_t* buffer, uint32_t total_sz) {
                     const uint8_t opt_size = options.read<uint8_t>();
                     if (opt_type == JUMBO_PAYLOAD) {
                         if (opt_size != 4) {
-                            throw malformed_packet();
+                            malformed(true);
+                            return;
                         }
                         actual_payload_length = stream.read_be<uint32_t>();
                         break;
@@ -167,7 +175,8 @@ IPv6::IPv6(const uint8_t* buffer, uint32_t total_sz) {
         }
         else {
             if (!stream.can_read(actual_payload_length)) {
-                throw malformed_packet();
+                malformed(true);
+                return;
             }
             if (is_payload_fragmented) {
                 inner_pdu(new Tins::RawPDU(stream.pointer(), actual_payload_length));

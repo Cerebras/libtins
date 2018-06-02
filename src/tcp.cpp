@@ -65,11 +65,18 @@ TCP::TCP(uint16_t dport, uint16_t sport)
 
 TCP::TCP(const uint8_t* buffer, uint32_t total_sz) {
     InputMemoryStream stream(buffer, total_sz);
-    stream.read(header_);
+    try {
+        stream.read(header_);
+    }
+    catch (const insufficient_data &) {
+        malformed(true);
+        return;
+    }
     // Check that we have at least the amount of bytes we need and not less
     if (TINS_UNLIKELY(data_offset() * sizeof(uint32_t) > total_sz || 
                       data_offset() * sizeof(uint32_t) < sizeof(tcp_header))) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
     const uint8_t* header_end = buffer + (data_offset() * sizeof(uint32_t));
 
@@ -99,12 +106,14 @@ TCP::TCP(const uint8_t* buffer, uint32_t total_sz) {
 
             // We need to subtract the option type and length from the size
             if (TINS_UNLIKELY(len < sizeof(uint8_t) << 1)) {
-                throw malformed_packet();
+                malformed(true);
+                return;
             }
             len -= (sizeof(uint8_t) << 1);
             // Make sure we have enough bytes for the advertised option payload length
             if (TINS_UNLIKELY(data_start + len > header_end)) {
-                throw malformed_packet(); 
+                malformed(true);
+                return;
             }
             // If we're using C++11, use the variadic template overload
             #if TINS_IS_CXX11

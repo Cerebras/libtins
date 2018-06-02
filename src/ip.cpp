@@ -75,12 +75,19 @@ IP::IP(address_type ip_dst, address_type ip_src) {
 
 IP::IP(const uint8_t* buffer, uint32_t total_sz) {
     InputMemoryStream stream(buffer, total_sz);
-    stream.read(header_);
+    try {
+        stream.read(header_);
+    }
+    catch (const insufficient_data &) {
+        malformed(true);
+        return;
+    }
 
     // Make sure we have enough size for options and not less than we should
     if (TINS_UNLIKELY(head_len() * sizeof(uint32_t) > total_sz || 
                       head_len() * sizeof(uint32_t) < sizeof(header_))) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
     const uint8_t* options_end = buffer + head_len() * sizeof(uint32_t);
     
@@ -91,13 +98,15 @@ IP::IP(const uint8_t* buffer, uint32_t total_sz) {
             // Multibyte options with length as second byte
             const uint32_t option_size = stream.read<uint8_t>();
             if (TINS_UNLIKELY(option_size < (sizeof(uint8_t) << 1))) {
-                throw malformed_packet();
+                malformed(true);
+                return;
             }
             // The data size is the option size - the identifier and size fields
             const uint32_t data_size = option_size - (sizeof(uint8_t) << 1);
             if (data_size > 0) {
                 if (stream.pointer() + data_size > options_end) {
-                    throw malformed_packet();
+                    malformed(true);
+                    return;
                 }
                 options_.push_back(
                     option(opt_type, stream.pointer(), stream.pointer() + data_size)
@@ -112,7 +121,8 @@ IP::IP(const uint8_t* buffer, uint32_t total_sz) {
             // If the end option found, we're done
             if (TINS_UNLIKELY(stream.pointer() != options_end)) {
                 // Make sure we found the END option at the end of the options list
-                throw malformed_packet();
+                malformed(true);
+                return;
             }
             break;
         }

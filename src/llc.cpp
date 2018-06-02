@@ -60,7 +60,8 @@ LLC::LLC(const uint8_t* buffer, uint32_t total_sz) {
     InputMemoryStream stream(buffer, total_sz);
     stream.read(header_);
     if (!stream) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
 	information_field_length_ = 0;
 	if ((*stream.pointer() & 0x03) == LLC::UNNUMBERED) {

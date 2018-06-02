@@ -66,6 +66,15 @@ IF(LIBTINS_ENABLE_PCAP)
     SET(TINS_HAVE_PCAP ON)
 ENDIF()
 
+# By default, a malformed_packet exception is thrown when certain errors occur
+# while constructing a packet. This can be turned off, so that the packet will
+# be constructed as much as possible but a malformed flag will be set.
+OPTION(LIBTINS_THROW_MALFORMED_PACKET "Enable throwing malformed_packet exception" ON)
+
+IF(LIBTINS_THROW_MALFORMED_PACKET)
+    SET(TINS_THROW_MALFORMED_PACKET ON)
+ENDIF()
+
 # Set some Windows specific flags
 IF(WIN32)
     # We need to link against these libs

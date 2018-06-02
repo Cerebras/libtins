@@ -84,12 +84,14 @@ RadioTap::RadioTap(const uint8_t* buffer, uint32_t total_sz) {
     input.read(header_);
     uint32_t radiotap_size = length();
     if (TINS_UNLIKELY(radiotap_size < sizeof(header_) + sizeof(uint32_t))) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
 
     radiotap_size -= sizeof(header_);
     if (TINS_UNLIKELY(radiotap_size + sizeof(uint32_t) > input.size())) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
 
     options_payload_.assign(input.pointer(), input.pointer() + radiotap_size);
@@ -101,11 +103,13 @@ RadioTap::RadioTap(const uint8_t* buffer, uint32_t total_sz) {
         const uint8_t flags_value = *parser.current_option_ptr();
         if ((flags_value & FCS) != 0) {
             if (TINS_UNLIKELY(total_sz < sizeof(uint32_t))) {
-                throw malformed_packet();
+                malformed(true);
+                return;
             }
             total_sz -= sizeof(uint32_t);
             if (TINS_UNLIKELY((flags_value & FAILED_FCS) != 0)) {
-                throw malformed_packet();
+                malformed(true);
+                return;
             }
         }
     }

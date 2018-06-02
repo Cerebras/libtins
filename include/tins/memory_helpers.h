@@ -95,7 +95,7 @@ public:
     template <typename T>
     void read(T& value) {
         if (!can_read(sizeof(value))) {
-            throw malformed_packet();
+            throw insufficient_data();
         }
         read_value(buffer_, value);
         skip(sizeof(value));
@@ -103,7 +103,7 @@ public:
 
     void skip(size_t size) {
         if (TINS_UNLIKELY(size > size_)) {
-            throw malformed_packet();
+            throw insufficient_data();
         }
         buffer_ += size;
         size_ -= size;
@@ -115,7 +115,7 @@ public:
 
     void read(void* output_buffer, size_t output_buffer_size) {
         if (!can_read(output_buffer_size)) {
-            throw malformed_packet();
+            throw insufficient_data();
         }
         read_data(buffer_, (uint8_t*)output_buffer, output_buffer_size);
         skip(output_buffer_size);
@@ -191,7 +191,7 @@ public:
 
     void skip(size_t size) {
         if (TINS_UNLIKELY(size > size_)) {
-            throw malformed_packet();
+            throw insufficient_data();
         }
         buffer_ += size;
         size_ -= size;

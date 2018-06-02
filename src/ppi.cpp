@@ -46,9 +46,16 @@ namespace Tins {
 
 PPI::PPI(const uint8_t* buffer, uint32_t total_sz) {
     InputMemoryStream stream(buffer, total_sz);
-    stream.read(header_);
+    try {
+        stream.read(header_);
+    }
+    catch (const insufficient_data &) {
+        malformed(true);
+        return;
+    }
     if (length() > total_sz || length() < sizeof(header_)) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
     // There are some options
     const size_t options_length = length() - sizeof(header_);
@@ -104,7 +111,8 @@ void PPI::parse_80211(const uint8_t* buffer, uint32_t total_sz) {
         if ((data_[12] & 1) == 1) {
             // We need to reduce the total size since we're skipping the FCS
             if (total_sz < sizeof(uint32_t)) {
-                throw malformed_packet();
+                malformed(true);
+                return;
             }
             total_sz -= sizeof(uint32_t);
         }
