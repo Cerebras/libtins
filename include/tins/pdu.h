@@ -297,6 +297,14 @@ public:
     }
     
     /**
+     * Getter for malformed flag
+     * \return True if the current PDU header is malformed.
+     */
+    bool is_malformed() const {
+        return malformed_;
+    }
+    
+    /**
      * \brief Releases the inner PDU.
      * 
      * This method makes this PDU to <b>no longer own</b> the inner
@@ -341,7 +349,7 @@ public:
      */
     serialization_type serialize();
 
-    /**
+    /** 
      * \brief Finds and returns the first PDU that matches the given flag.
      *
      * This method searches for the first PDU which has the same type flag as
@@ -486,6 +494,39 @@ protected:
     void copy_inner_pdu(const PDU& pdu);
 
     /**
+     * \brief Setter for malformed flag.
+     *
+     * \param new_malformed The new malformed flag.
+     */
+    void malformed(bool new_malformed) {
+        malformed_ = new_malformed;
+        
+#ifdef TINS_THROW_MALFORMED_PACKET
+        if (malformed_) {
+            throw malformed_packet();
+        }
+#endif
+    }
+    
+    /**
+     * \brief Setter for malformed flag for use in const methods.
+     *
+     * This will not cause the malformed flag to be updated, but it will
+     * throw an exception if the library has been configured that way.
+     *
+     * \param new_malformed If true, then throw exception if configured.
+     */
+    void malformed(bool new_malformed) const {
+#ifdef TINS_THROW_MALFORMED_PACKET
+        if (new_malformed) {
+            throw malformed_packet();
+        }
+#else
+        (void)new_malformed;
+#endif
+    }
+    
+    /**
      * \brief Prepares this PDU for serialization.
      * 
      * This method is called before the inner PDUs are serialized.
@@ -520,6 +561,7 @@ private:
 
     PDU* inner_pdu_;
     PDU* parent_pdu_;
+    bool malformed_;
 };
 
 /**

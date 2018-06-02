@@ -47,9 +47,17 @@ BootP::BootP()
 BootP::BootP(const uint8_t* buffer, uint32_t total_sz, uint32_t vend_field_size) 
 : vend_(vend_field_size) {
     InputMemoryStream stream(buffer, total_sz);
-    stream.read(bootp_);
+    try {
+        stream.read(bootp_);
+    }
+    catch (const insufficient_data &) {
+        malformed(true);
+        return;
+    }
+    
     if (!stream.can_read(vend_field_size)) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
     stream.read(vend_, vend_field_size);
 }

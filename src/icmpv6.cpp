@@ -69,9 +69,15 @@ ICMPv6::ICMPv6(const uint8_t* buffer, uint32_t total_sz)
     else if (type() == MLD2_REPORT) {
         uint16_t record_count = Endian::be_to_host(header_.mlrm2.record_count);
         for (uint16_t i = 0; i < record_count; ++i) {
-            multicast_records_.push_back(
-                multicast_address_record(stream.pointer(), stream.size())
-            );
+            try {
+                multicast_records_.push_back(
+                    multicast_address_record(stream.pointer(), stream.size())
+                );
+            }
+            catch (const malformed_packet &) {
+                malformed(true);
+                return;
+            }
             stream.skip(multicast_records_.back().size());
         }
     }
@@ -105,12 +111,14 @@ void ICMPv6::parse_options(InputMemoryStream& stream) {
         const uint8_t opt_type = stream.read<uint8_t>();
         const uint32_t opt_size = static_cast<uint32_t>(stream.read<uint8_t>()) * 8;
         if (opt_size < sizeof(uint8_t) << 1) {
-            throw malformed_packet();
+            malformed(true);
+            return;
         }
         // size(option) = option_size - identifier_size - length_identifier_size
         const uint32_t payload_size = opt_size - (sizeof(uint8_t) << 1);
         if (!stream.can_read(payload_size)) { 
-            throw malformed_packet();
+            malformed(true);
+            return;
         }
         add_option(
             option(

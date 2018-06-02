@@ -31,6 +31,9 @@
 /* Have libpcap */
 #cmakedefine TINS_HAVE_PCAP
 
+/* Throw malformed_packet */
+#cmakedefine TINS_THROW_MALFORMED_PACKET
+
 /* Version macros */
 #define TINS_VERSION_MAJOR ${TINS_VERSION_MAJOR}
 #define TINS_VERSION_MINOR ${TINS_VERSION_MINOR}

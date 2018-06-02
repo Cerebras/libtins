@@ -60,40 +60,35 @@ Tins::PDU* pdu_from_flag(Constants::Ethernet::e flag,
                          const uint8_t* buffer,
                          uint32_t size,
                          bool rawpdu_on_no_match) {
-    try {
-        switch (flag) {
-            case Tins::Constants::Ethernet::IP:
-                return new IP(buffer, size);
-            case Constants::Ethernet::IPV6:
-                return new IPv6(buffer, size);
-            case Tins::Constants::Ethernet::ARP:
-                return new ARP(buffer, size);
-            case Tins::Constants::Ethernet::PPPOED:
-            case Tins::Constants::Ethernet::PPPOES:
-                return new PPPoE(buffer, size);
-            case Tins::Constants::Ethernet::EAPOL:
-                return EAPOL::from_bytes(buffer, size);
-            case Tins::Constants::Ethernet::VLAN:
-            case Tins::Constants::Ethernet::QINQ:
-            case Tins::Constants::Ethernet::OLD_QINQ:
-                return new Dot1Q(buffer, size);
-            case Tins::Constants::Ethernet::MPLS:
-                return new MPLS(buffer, size);
-            default:
-                {
-                    PDU* pdu = Internals::allocate<EthernetII>(
-                        static_cast<uint16_t>(flag),
-                        buffer,
-                        size
-                        );
-                    if (pdu) {
-                        return pdu;
-                    }
-                }
+    switch (flag) {
+        case Constants::Ethernet::IP:
+            return new IP(buffer, size);
+        case Constants::Ethernet::IPV6:
+            return new IPv6(buffer, size);
+        case Constants::Ethernet::ARP:
+            return new ARP(buffer, size);
+        case Constants::Ethernet::PPPOED:
+        case Constants::Ethernet::PPPOES:
+            return new PPPoE(buffer, size);
+        case Constants::Ethernet::EAPOL:
+            return EAPOL::from_bytes(buffer, size);
+        case Constants::Ethernet::VLAN:
+        case Constants::Ethernet::QINQ:
+        case Constants::Ethernet::OLD_QINQ:
+            return new Dot1Q(buffer, size);
+        case Constants::Ethernet::MPLS:
+            return new MPLS(buffer, size);
+        default:
+        {
+            PDU* pdu = Internals::allocate<EthernetII>(
+                static_cast<uint16_t>(flag),
+                buffer,
+                size
+                );
+            if (pdu) {
+                return pdu;
+            }
         }
-    }
-    catch (const malformed_packet &e) {
-        /* Continue to return statement below. */
     }
 
     return rawpdu_on_no_match ? new RawPDU(buffer, size) : 0;
@@ -123,10 +118,8 @@ Tins::PDU* pdu_from_flag(Constants::IP::e flag,
         default:
             break;
     }
-    if (rawpdu_on_no_match) {
-        return new Tins::RawPDU(buffer, size);
-    }
-    return 0;
+    
+    return rawpdu_on_no_match ? new Tins::RawPDU(buffer, size) : 0;
 }
 
 #ifdef TINS_HAVE_PCAP
@@ -175,36 +168,38 @@ Tins::PDU* pdu_from_flag(PDU::PDUType type, const uint8_t* buffer, uint32_t size
             return new Tins::IEEE802_3(buffer, size);
         case Tins::PDU::PPPOE:
             return new Tins::PPPoE(buffer, size);
-        #ifdef TINS_HAVE_DOT11
-            case Tins::PDU::RADIOTAP:
-                return new Tins::RadioTap(buffer, size);
-            case Tins::PDU::DOT11:
-            case Tins::PDU::DOT11_ACK:
-            case Tins::PDU::DOT11_ASSOC_REQ:
-            case Tins::PDU::DOT11_ASSOC_RESP:
-            case Tins::PDU::DOT11_AUTH:
-            case Tins::PDU::DOT11_BEACON:
-            case Tins::PDU::DOT11_BLOCK_ACK:
-            case Tins::PDU::DOT11_BLOCK_ACK_REQ:
-            case Tins::PDU::DOT11_CF_END:
-            case Tins::PDU::DOT11_DATA:
-            case Tins::PDU::DOT11_CONTROL:
-            case Tins::PDU::DOT11_DEAUTH:
-            case Tins::PDU::DOT11_DIASSOC:
-            case Tins::PDU::DOT11_END_CF_ACK:
-            case Tins::PDU::DOT11_MANAGEMENT:
-            case Tins::PDU::DOT11_PROBE_REQ:
-            case Tins::PDU::DOT11_PROBE_RESP:
-            case Tins::PDU::DOT11_PS_POLL:
-            case Tins::PDU::DOT11_REASSOC_REQ:
-            case Tins::PDU::DOT11_REASSOC_RESP:
-            case Tins::PDU::DOT11_RTS:
-            case Tins::PDU::DOT11_QOS_DATA:
-                return Tins::Dot11::from_bytes(buffer, size);
-        #endif // TINS_HAVE_DOT11
+#ifdef TINS_HAVE_DOT11
+        case Tins::PDU::RADIOTAP:
+            return new Tins::RadioTap(buffer, size);
+        case Tins::PDU::DOT11:
+        case Tins::PDU::DOT11_ACK:
+        case Tins::PDU::DOT11_ASSOC_REQ:
+        case Tins::PDU::DOT11_ASSOC_RESP:
+        case Tins::PDU::DOT11_AUTH:
+        case Tins::PDU::DOT11_BEACON:
+        case Tins::PDU::DOT11_BLOCK_ACK:
+        case Tins::PDU::DOT11_BLOCK_ACK_REQ:
+        case Tins::PDU::DOT11_CF_END:
+        case Tins::PDU::DOT11_DATA:
+        case Tins::PDU::DOT11_CONTROL:
+        case Tins::PDU::DOT11_DEAUTH:
+        case Tins::PDU::DOT11_DIASSOC:
+        case Tins::PDU::DOT11_END_CF_ACK:
+        case Tins::PDU::DOT11_MANAGEMENT:
+        case Tins::PDU::DOT11_PROBE_REQ:
+        case Tins::PDU::DOT11_PROBE_RESP:
+        case Tins::PDU::DOT11_PS_POLL:
+        case Tins::PDU::DOT11_REASSOC_REQ:
+        case Tins::PDU::DOT11_REASSOC_RESP:
+        case Tins::PDU::DOT11_RTS:
+        case Tins::PDU::DOT11_QOS_DATA:
+            return Tins::Dot11::from_bytes(buffer, size);
+#endif // TINS_HAVE_DOT11
         default:
             return 0;
     };
+    
+    return 0;
 }
 
 Constants::Ethernet::e pdu_flag_to_ether_type(PDU::PDUType flag) {

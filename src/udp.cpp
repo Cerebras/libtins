@@ -57,7 +57,13 @@ UDP::UDP(uint16_t dport, uint16_t sport)
 
 UDP::UDP(const uint8_t* buffer, uint32_t total_sz)  {
     InputMemoryStream stream(buffer, total_sz);
-    stream.read(header_);
+    try {
+        stream.read(header_);
+    }
+    catch (const insufficient_data &) {
+        malformed(true);
+        return;
+    }
     if (stream) {
         inner_pdu(new RawPDU(stream.pointer(), stream.size()));
     }

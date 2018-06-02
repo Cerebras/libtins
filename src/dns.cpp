@@ -106,7 +106,8 @@ void DNS::skip_to_section_end(InputMemoryStream& stream,
         stream.skip(sizeof(uint16_t) * 2 + sizeof(uint32_t));
         uint16_t data_size = stream.read_be<uint16_t>();
         if (TINS_UNLIKELY(!stream.can_read(data_size))) {
-            throw malformed_packet();
+            malformed(true);
+            return;
         }
         stream.skip(data_size);
     }
@@ -340,14 +341,16 @@ uint32_t DNS::compose_name(const uint8_t* ptr, char* out_ptr) const {
         // It's an offset
         if ((*ptr & 0xc0)) {
             if (TINS_UNLIKELY(ptr + sizeof(uint16_t) > end)) {
-                throw malformed_packet();
+                malformed(true);
+                return 0;
             }
             uint16_t index;
             memcpy(&index, ptr, sizeof(uint16_t));
             index = Endian::be_to_host(index) & 0x3fff;
             // Check that the offset is neither too low or too high
             if (index < 0x0c || (&records_data_[0] + (index - 0x0c)) >= end) {
-                throw malformed_packet();
+                malformed(true);
+                return 0;
             }
             // We've probably found the end of the original domain name. Save it.
             if (end_ptr == 0) {
@@ -361,7 +364,8 @@ uint32_t DNS::compose_name(const uint8_t* ptr, char* out_ptr) const {
             uint8_t size = *ptr;
             ptr++;
             if (TINS_UNLIKELY(ptr + size > end || current_out_ptr - out_ptr + size + 1 > 255)) {
-                throw malformed_packet();
+                malformed(true);
+                return 0;
             }
             // Append a dot if it's not the first one.
             if (current_out_ptr != out_ptr) {
@@ -431,7 +435,8 @@ void DNS::convert_records(const uint8_t* ptr,
             data_size -= sizeof(uint16_t);
         }
         if (TINS_UNLIKELY(!stream.can_read(data_size))) {
-            throw malformed_packet();
+            malformed(true);
+            return;
         }
 
         switch (type) {
@@ -459,7 +464,8 @@ void DNS::convert_records(const uint8_t* ptr,
                     data += encode_domain_name(small_addr_buf);
                     const uint32_t size_left = sizeof(uint32_t) * 5;
                     if (!stream.can_read(size_left)) {
-                        throw malformed_packet();
+                        malformed(true);
+                        return;
                     }
                     data.insert(data.end(), stream.pointer(), stream.pointer() + size_left);
                     stream.skip(size_left);

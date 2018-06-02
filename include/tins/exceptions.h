@@ -67,6 +67,14 @@ public:
 };
 
 /**
+ * \brief Exception thrown when insufficient 
+ */
+class insufficient_data : public exception_base {
+public:
+    insufficient_data() : exception_base("Insufficient data in stream") { }
+};
+
+/**
  * \brief Exception thrown when serializing a packet fails.
  */
 class serialization_error : public exception_base {

@@ -106,7 +106,8 @@ DHCPv6::DHCPv6(const uint8_t* buffer, uint32_t total_sz)
 : options_size_() {
     InputMemoryStream stream(buffer, total_sz);
     if (!stream) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
     // Relay Agent/Server Messages
     const MessageType message_type = (MessageType)*stream.pointer();
@@ -121,7 +122,8 @@ DHCPv6::DHCPv6(const uint8_t* buffer, uint32_t total_sz)
         uint16_t opt = stream.read_be<uint16_t>();
         uint16_t data_size = stream.read_be<uint16_t>();
         if (!stream.can_read(data_size)) {
-            throw malformed_packet();
+            malformed(true);
+            return;
         }
         add_option(option(opt, stream.pointer(), stream.pointer() + data_size));
         stream.skip(data_size);

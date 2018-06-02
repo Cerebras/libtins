@@ -48,17 +48,17 @@ PDU::metadata::metadata(uint32_t header_size, PDUType current_type, PDUType next
 // PDU
 
 PDU::PDU()
-: inner_pdu_(), parent_pdu_() {
-
+: inner_pdu_(), parent_pdu_(), malformed_() {
 }
 
 PDU::PDU(const PDU& other) 
-: inner_pdu_(), parent_pdu_() {
+: inner_pdu_(), parent_pdu_(), malformed_(other.malformed_) {
     copy_inner_pdu(other);
 }
 
 PDU& PDU::operator=(const PDU& other) {
     copy_inner_pdu(other);
+    malformed_ = other.malformed_;
     return* this;
 }
 

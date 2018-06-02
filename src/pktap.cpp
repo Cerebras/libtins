@@ -46,7 +46,8 @@ PKTAP::PKTAP(const uint8_t* buffer, uint32_t total_sz) {
     stream.read(header_);
     uint32_t header_length = header_.length;
     if (header_length > total_sz || header_length < sizeof(header_)) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
     stream.skip(header_length - sizeof(header_));
     if (header_.next && stream) {

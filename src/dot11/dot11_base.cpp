@@ -70,7 +70,13 @@ Dot11::Dot11(const dot11_header* /*header_ptr*/)
 Dot11::Dot11(const uint8_t* buffer, uint32_t total_sz) 
 : options_size_(0) {
     InputMemoryStream stream(buffer, total_sz);
-    stream.read(header_);
+    try {
+        stream.read(header_);
+    }
+    catch (const insufficient_data &) {
+        malformed(true);
+        return;
+    }
 }
 
 void Dot11::write_ext_header(Memory::OutputMemoryStream& /*stream*/) {
@@ -85,7 +91,8 @@ void Dot11::parse_tagged_parameters(InputMemoryStream& stream) {
             OptionTypes opcode = static_cast<OptionTypes>(stream.read<uint8_t>());
             uint8_t length = stream.read<uint8_t>();
             if (!stream.can_read(length)) {
-                throw malformed_packet();
+                malformed(true);
+                return;
             }
             add_tagged_option(opcode, length, stream.pointer());
             stream.skip(length);
@@ -228,7 +235,8 @@ Dot11* Dot11::from_bytes(const uint8_t* buffer, uint32_t total_sz) {
     
     // This should be sizeof(dot11_header::control), but gcc 4.2 complains
     if (total_sz < 2) {
-        throw malformed_packet();
+        malformed(true);
+        return;
     }
     const dot11_header* hdr = (const dot11_header*)buffer;
     if (hdr->control.type == MANAGEMENT) {
