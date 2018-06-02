@@ -226,6 +226,13 @@ public:
     }
 
     /**
+     * \brief Getter for the checksum field.
+     *
+     * \return The checksum field value.
+     */
+    uint16_t calculate_checksum() const;
+
+    /**
      * \brief Getter for the urgent pointer field.
      *
      * \return The urgent pointer field value.
@@ -606,6 +613,9 @@ private:
         return opt->to<T>();
     }
     
+    uint16_t calculate_checksum(const uint8_t *buffer,
+                                const uint32_t total_sz,
+                                const uint16_t old_checksum) const;
     void write_serialization(uint8_t* buffer, uint32_t total_sz);
     void checksum(uint16_t new_check);
     uint32_t calculate_options_size() const;
@@ -613,7 +623,8 @@ private:
     options_type::const_iterator search_option_iterator(OptionTypes type) const;
     options_type::iterator search_option_iterator(OptionTypes type);
     
-    void write_option(const option& opt, Memory::OutputMemoryStream& stream);
+    void write_option(const option& opt, Memory::OutputMemoryStream& stream) const;
+    void stream_options(Memory::OutputMemoryStream &stream, const uint32_t pad_size) const;
 
     options_type options_;
     tcp_header header_;

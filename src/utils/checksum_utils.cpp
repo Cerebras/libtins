@@ -65,10 +65,16 @@ uint16_t sum_range(const uint8_t* start, const uint8_t* end) {
     }
 
     checksum += padding;
-    while (checksum >> 16) {
-        checksum = (checksum & 0xffff) + (checksum >> 16);
+    
+    return fold_sum(checksum);
+}
+
+uint16_t fold_sum(uint32_t sum) {
+    while (sum >> 16) {
+        sum = (sum & 0xffff) + (sum >> 16);
     }
-    return checksum;  
+    
+    return static_cast<uint16_t>(sum);
 }
 
 template <size_t buffer_size, typename AddressType>

@@ -380,6 +380,17 @@ public:
     }
 
     /**
+     * \brief Calculate the correct checksum value.
+     *
+     * This will calculate and return the correct checksum value across all
+     * of the IP header fields. This is value that should be in the checksum
+     * field, but may not be.
+     *
+     * \return The calculated checksum for this IP PDU.
+     */
+    uint16_t calculate_checksum() const;
+    
+    /**
      * \brief Getter for the source address field.
      *
      * \return The source address for this IP PDU.
@@ -758,7 +769,11 @@ private:
     uint32_t pad_options_size(uint32_t size) const;
     void init_ip_fields();
     void write_serialization(uint8_t* buffer, uint32_t total_sz);
-    void write_option(const option& opt, Memory::OutputMemoryStream& stream);
+    uint16_t calculate_checksum(const uint8_t* buffer,
+                                const uint32_t total_sz,
+                                const uint16_t old_checksum) const;
+    void write_option(const option& opt, Memory::OutputMemoryStream& stream) const;
+    void stream_options(Memory::OutputMemoryStream &stream, const uint32_t pad_size) const;
     void add_route_option(option_identifier id, const generic_route_option_type& data);
     generic_route_option_type search_route_option(option_identifier id) const;
     void checksum(uint16_t new_check);
