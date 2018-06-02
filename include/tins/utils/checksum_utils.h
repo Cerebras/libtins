@@ -64,6 +64,17 @@ TINS_API uint32_t do_checksum(const uint8_t* start, const uint8_t* end);
  */
 TINS_API uint16_t sum_range(const uint8_t* start, const uint8_t* end);
 
+/** 
+ * \brief Fold 32 bit sum to produce 16 bit sum.
+ *
+ * This implements the algorithm used by the TCP/IP standard checksum to add
+ * overflow bits back into the lower 16 bit word.
+ * \param sum 32-bit sum
+ * \return 16-bit folded sum
+ * in network endian
+ */
+TINS_API uint16_t fold_sum(uint32_t sum);
+
 /**
  * \brief Performs the pseudo header checksum used in TCP and UDP PDUs.
  *

@@ -146,6 +146,24 @@ void TCP::checksum(uint16_t new_check) {
     header_.check = Endian::host_to_be(new_check);
 }
 
+uint16_t TCP::calculate_checksum() const {
+    const uint32_t options_size = calculate_options_size();
+    const uint32_t padded_options_size = pad_options_size(options_size);
+    
+    // Create buffer to hold header and write it to a stream
+    std::vector<uint8_t> buffer_vec(sizeof(header_) + padded_options_size);
+    OutputMemoryStream stream(buffer_vec.data(), buffer_vec.size());
+    stream.write(header_);
+    stream_options(stream, (padded_options_size - options_size));
+
+    if (inner_pdu()) {
+        auto payload = inner_pdu()->clone()->serialize();
+        buffer_vec.insert(buffer_vec.end(), payload.begin(), payload.end());
+    }
+
+    return calculate_checksum(buffer_vec.data(), buffer_vec.size(), header_.check);
+}
+
 void TCP::urg_ptr(uint16_t new_urg_ptr) {
     header_.urg_ptr = Endian::host_to_be(new_urg_ptr);
 }
@@ -299,23 +317,9 @@ uint32_t TCP::header_size() const {
     return sizeof(header_) + pad_options_size(calculate_options_size());
 }
 
-void TCP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
-    OutputMemoryStream stream(buffer, total_sz);
-    const uint32_t options_size = calculate_options_size();
-    const uint32_t total_options_size = pad_options_size(options_size);
-    // Set checksum to 0, we'll calculate it at the end
-    checksum(0);
-    header_.doff = (sizeof(tcp_header) + total_options_size) / sizeof(uint32_t);
-    stream.write(header_);
-    for (options_type::const_iterator it = options_.begin(); it != options_.end(); ++it) {
-        write_option(*it, stream);
-    }
-
-    if (options_size < total_options_size) {
-        const uint16_t padding = total_options_size - options_size;
-        stream.fill(padding, 0);
-    }
-
+uint16_t TCP::calculate_checksum(const uint8_t* buffer,
+                                 const uint32_t total_sz,
+                                 const uint16_t old_checksum) const {
     uint32_t check = 0;
     const PDU* parent = parent_pdu();
     if (const Tins::IP* ip_packet = tins_cast<const Tins::IP*>(parent)) {
@@ -335,13 +339,24 @@ void TCP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
         ) + Utils::sum_range(buffer, buffer + total_sz);
     }
     else {
-        return;
+        // No pseudo-header available, so treat its checksum as 0.
+        check = Utils::sum_range(buffer, buffer + total_sz);
     }
-    // Convert this 32-bit value into a 16-bit value
-    while (check >> 16) {
-            check = (check & 0xffff) + (check >> 16);
-    }
-    checksum(Endian::host_to_be<uint16_t>(~check));
+
+    check -= old_checksum;
+    return Endian::host_to_be<uint16_t>(~Utils::fold_sum(check));
+}
+
+void TCP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
+    OutputMemoryStream stream(buffer, total_sz);
+    const uint32_t options_size = calculate_options_size();
+    const uint32_t padded_options_size = pad_options_size(options_size);
+
+    header_.doff = (sizeof(tcp_header) + padded_options_size) / sizeof(uint32_t);
+    stream.write(header_);
+    stream_options(stream, (padded_options_size - options_size));
+
+    checksum(calculate_checksum(buffer, total_sz, header_.check));
     ((tcp_header*)buffer)->check = header_.check;
 }
 
@@ -361,7 +376,7 @@ TCP::options_type::iterator TCP::search_option_iterator(OptionTypes type) {
 
 /* options */
 
-void TCP::write_option(const option& opt, OutputMemoryStream& stream) {
+void TCP::write_option(const option& opt, OutputMemoryStream& stream) const {
     stream.write<uint8_t>(opt.option());
     // Only do this for non EOL nor NOP options 
     if (opt.option() > 1) {
@@ -374,6 +389,16 @@ void TCP::write_option(const option& opt, OutputMemoryStream& stream) {
         stream.write(length);
         stream.write(opt.data_ptr(), opt.data_size());
     }
+}
+
+void TCP::stream_options(OutputMemoryStream &stream, const uint32_t pad_size) const {
+    // Write options to stream
+    for (options_type::const_iterator it = options_.begin(); it != options_.end(); ++it) {
+        write_option(*it, stream);
+    }
+
+    // Add option padding
+    stream.fill(pad_size, 0);
 }
 
 uint32_t TCP::calculate_options_size() const {

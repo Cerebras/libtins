@@ -213,6 +213,19 @@ void IP::checksum(uint16_t new_check) {
     header_.check = Endian::host_to_be(new_check);
 }
 
+uint16_t IP::calculate_checksum() const {
+    // Create buffer to hold header and write it to a stream
+    const uint32_t options_size = calculate_options_size();
+    const uint32_t padded_options_size = pad_options_size(options_size);
+    uint8_t buffer[sizeof(header_) + padded_options_size];
+    OutputMemoryStream stream(buffer, sizeof(buffer));
+    stream.write(header_);
+    stream_options(stream, (padded_options_size - options_size));
+    
+    // Calculate the checksum
+    return calculate_checksum(buffer, (stream.pointer() - buffer), header_.check);
+}
+
 void IP::src_addr(address_type ip) {
     header_.saddr = ip;
 }
@@ -358,7 +371,7 @@ IP::options_type::iterator IP::search_option_iterator(option_identifier id) {
     return Internals::find_option<option>(options_, id);
 }
 
-void IP::write_option(const option& opt, OutputMemoryStream& stream) {
+void IP::write_option(const option& opt, OutputMemoryStream& stream) const {
     stream.write(opt.option());
     // Check what we wrote. We'll do this for any option != [END, NOOP]
     if (*(stream.pointer() - 1) > NOOP) {
@@ -369,6 +382,15 @@ void IP::write_option(const option& opt, OutputMemoryStream& stream) {
         stream.write(length);
         stream.write(opt.data_ptr(), opt.data_size());
     }
+}
+
+void IP::stream_options(OutputMemoryStream &stream, const uint32_t pad_size) const {
+    // Write options to stream
+    for (options_type::const_iterator it = options_.begin(); it != options_.end(); ++it) {
+        write_option(*it, stream);
+    }
+    // Add option padding
+    stream.fill(pad_size, 0);
 }
 
 // Virtual method overriding
@@ -423,7 +445,6 @@ void IP::prepare_for_serialize() {
 
 void IP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
     OutputMemoryStream stream(buffer, total_sz);
-    checksum(0);
     if (inner_pdu()) {
         uint32_t new_flag = Internals::pdu_flag_to_ip_type(inner_pdu()->pdu_type());
         if (new_flag == 0xff && Internals::pdu_type_registered<IP>(inner_pdu()->pdu_type())) {
@@ -455,20 +476,21 @@ void IP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
     // Restore the fragment offset field in case we flipped it
     header_.frag_off = original_frag_off;
 
-    for (options_type::const_iterator it = options_.begin(); it != options_.end(); ++it) {
-        write_option(*it, stream);
-    }
     const uint32_t options_size = calculate_options_size();
     const uint32_t padded_options_size = pad_options_size(options_size);
-    // Add option padding
-    stream.fill(padded_options_size - options_size, 0);
+    stream_options(stream, (padded_options_size - options_size));
 
-    uint32_t check = Utils::do_checksum(buffer, stream.pointer());
-    while (check >> 16) {
-        check = (check & 0xffff) + (check >> 16);
-    }
-    checksum(~check);
+    // Calculate the checksum
+    checksum(calculate_checksum(buffer, (stream.pointer() - buffer), header_.check));
     ((ip_header*)buffer)->check = header_.check;
+}
+
+uint16_t IP::calculate_checksum(const uint8_t* buffer,
+                                const uint32_t total_sz,
+                                const uint16_t old_checksum) const {
+    uint32_t check = Utils::sum_range(buffer, buffer + total_sz);
+    check -= old_checksum;
+    return Endian::host_to_be<uint16_t>(~Utils::fold_sum(check));
 }
 
 bool IP::matches_response(const uint8_t* ptr, uint32_t total_sz) const {
