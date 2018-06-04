@@ -19,6 +19,7 @@ public:
     void test_equals(const TCP& tcp1, const TCP& tcp2);
 };
 
+// checksum is 101, 36.
 const uint8_t TCPTest::expected_packet[] = {
     127, 77, 79, 29, 241, 218, 229, 70, 95, 174, 209, 35, 208, 2, 113, 
     218, 0, 0, 31, 174, 2, 4, 152, 250, 8, 10, 79, 210, 58, 203, 137, 254, 
@@ -225,6 +226,7 @@ TEST_F(TCPTest, ConstructorFromBuffer) {
     EXPECT_EQ(tcp1.seq(), 0xf1dae546);
     EXPECT_EQ(tcp1.ack_seq(), 0x5faed123U);
     EXPECT_EQ(tcp1.window(), 0x71da);
+    EXPECT_EQ(tcp1.checksum(), 0x0);
     EXPECT_EQ(tcp1.urg_ptr(), 0x1fae);
     EXPECT_EQ(tcp1.data_offset(), 0xd);
     
@@ -257,6 +259,13 @@ TEST_F(TCPTest, Serialize) {
     TCP tcp1(expected_packet, sizeof(expected_packet));
     PDU::serialization_type buffer = tcp1.serialize();
     ASSERT_EQ(buffer.size(), sizeof(expected_packet));
+
+    // Check calculated checksum.
+    ASSERT_EQ((buffer[16] << 8 | buffer[17]), 0x6524);
+    // Zero-out the checksum bytes, because the original expected_packet
+    // does not have it.
+    buffer[16] = buffer[17] = 0;
+    
     EXPECT_TRUE(std::equal(buffer.begin(), buffer.end(), expected_packet));
 }
 
