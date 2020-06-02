@@ -64,7 +64,13 @@ ARP::ARP(ipaddress_type target_ip,
 
 ARP::ARP(const uint8_t* buffer, uint32_t total_sz) {
     InputMemoryStream stream(buffer, total_sz);
-    stream.read(header_);
+    try {
+        stream.read(header_);
+    }
+    catch (const insufficient_data &) {
+        malformed(true);
+        return;
+    }
     if (stream) {
         inner_pdu(new RawPDU(stream.pointer(), stream.size()));
     }

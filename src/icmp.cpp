@@ -63,21 +63,23 @@ ICMP::ICMP(const uint8_t* buffer, uint32_t total_sz)
     InputMemoryStream stream(buffer, total_sz);
     try {
         stream.read(header_);
+
+        if (type() == TIMESTAMP_REQUEST || type() == TIMESTAMP_REPLY) {
+            original_timestamp(stream.read<uint32_t>());
+            receive_timestamp(stream.read<uint32_t>());
+            transmit_timestamp(stream.read<uint32_t>());
+        }
+        else if (type() == ADDRESS_MASK_REQUEST || type() == ADDRESS_MASK_REPLY) {
+            address_mask(address_type(stream.read<uint32_t>()));
+        }
+        // Attempt to parse ICMP extensions
+        try_parse_extensions(stream);
     }
     catch (const insufficient_data &) {
         malformed(true);
         return;
     }
-    if (type() == TIMESTAMP_REQUEST || type() == TIMESTAMP_REPLY) {
-        original_timestamp(stream.read<uint32_t>());
-        receive_timestamp(stream.read<uint32_t>());
-        transmit_timestamp(stream.read<uint32_t>());
-    }
-    else if (type() == ADDRESS_MASK_REQUEST || type() == ADDRESS_MASK_REPLY) {
-        address_mask(address_type(stream.read<uint32_t>()));
-    }
-    // Attempt to parse ICMP extensions
-    try_parse_extensions(stream);
+
     if (stream) {
         inner_pdu(new RawPDU(stream.pointer(), stream.size()));
     }

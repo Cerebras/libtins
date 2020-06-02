@@ -67,64 +67,66 @@ TCP::TCP(const uint8_t* buffer, uint32_t total_sz) {
     InputMemoryStream stream(buffer, total_sz);
     try {
         stream.read(header_);
+
+        // Check that we have at least the amount of bytes we need and not less
+        if (TINS_UNLIKELY(data_offset() * sizeof(uint32_t) > total_sz || 
+                          data_offset() * sizeof(uint32_t) < sizeof(tcp_header))) {
+            malformed(true);
+            return;
+        }
+        const uint8_t* header_end = buffer + (data_offset() * sizeof(uint32_t));
+    
+        if (stream.pointer() < header_end) {
+            // Estimate about 4 bytes per option and reserver that so we avoid doing 
+            // multiple reallocations on the vector
+            options_.reserve((header_end - stream.pointer()) / sizeof(uint32_t));
+        }
+    
+        while (stream.pointer() < header_end) {
+            const OptionTypes option_type = (OptionTypes)stream.read<uint8_t>();
+            if (option_type == EOL) {
+                stream.skip(header_end - stream.pointer());
+                break;
+            }
+            else if (option_type == NOP) {
+                #if TINS_IS_CXX11
+                add_option(option_type, 0);
+                #else
+                add_option(option(option_type, 0));
+                #endif // TINS_IS_CXX11
+            }
+            else {
+                // Extract the length
+                uint32_t len = stream.read<uint8_t>();
+                const uint8_t* data_start = stream.pointer();
+    
+                // We need to subtract the option type and length from the size
+                if (TINS_UNLIKELY(len < sizeof(uint8_t) << 1)) {
+                    malformed(true);
+                    return;
+                }
+                len -= (sizeof(uint8_t) << 1);
+                // Make sure we have enough bytes for the advertised option payload length
+                if (TINS_UNLIKELY(data_start + len > header_end)) {
+                    malformed(true);
+                    return;
+                }
+                // If we're using C++11, use the variadic template overload
+                #if TINS_IS_CXX11
+                add_option(option_type, data_start, data_start + len);
+                #else
+                add_option(option(option_type, data_start, data_start + len));
+                #endif // TINS_IS_CXX11
+                // Skip the option's payload
+                stream.skip(len);
+            }
+        }
     }
     catch (const insufficient_data &) {
         malformed(true);
         return;
     }
-    // Check that we have at least the amount of bytes we need and not less
-    if (TINS_UNLIKELY(data_offset() * sizeof(uint32_t) > total_sz || 
-                      data_offset() * sizeof(uint32_t) < sizeof(tcp_header))) {
-        malformed(true);
-        return;
-    }
-    const uint8_t* header_end = buffer + (data_offset() * sizeof(uint32_t));
 
-    if (stream.pointer() < header_end) {
-        // Estimate about 4 bytes per option and reserver that so we avoid doing 
-        // multiple reallocations on the vector
-        options_.reserve((header_end - stream.pointer()) / sizeof(uint32_t));
-    }
-
-    while (stream.pointer() < header_end) {
-        const OptionTypes option_type = (OptionTypes)stream.read<uint8_t>();
-        if (option_type == EOL) {
-            stream.skip(header_end - stream.pointer());
-            break;
-        }
-        else if (option_type == NOP) {
-            #if TINS_IS_CXX11
-            add_option(option_type, 0);
-            #else
-            add_option(option(option_type, 0));
-            #endif // TINS_IS_CXX11
-        }
-        else {
-            // Extract the length
-            uint32_t len = stream.read<uint8_t>();
-            const uint8_t* data_start = stream.pointer();
-
-            // We need to subtract the option type and length from the size
-            if (TINS_UNLIKELY(len < sizeof(uint8_t) << 1)) {
-                malformed(true);
-                return;
-            }
-            len -= (sizeof(uint8_t) << 1);
-            // Make sure we have enough bytes for the advertised option payload length
-            if (TINS_UNLIKELY(data_start + len > header_end)) {
-                malformed(true);
-                return;
-            }
-            // If we're using C++11, use the variadic template overload
-            #if TINS_IS_CXX11
-            add_option(option_type, data_start, data_start + len);
-            #else
-            add_option(option(option_type, data_start, data_start + len));
-            #endif // TINS_IS_CXX11
-            // Skip the option's payload
-            stream.skip(len);
-        }
-    }
     // If we still have any bytes left
     if (stream) {
         inner_pdu(new RawPDU(stream.pointer(), stream.size()));
