@@ -51,6 +51,7 @@ using std::memcmp;
 using std::vector;
 
 using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins {
@@ -74,61 +75,55 @@ IP::IP(address_type ip_dst, address_type ip_src) {
 }
 
 IP::IP(const uint8_t* buffer, uint32_t total_sz) {
-    InputMemoryStream stream(buffer, total_sz);
-    try {
-        stream.read(header_);
+    PduInputMemoryStream stream(this, buffer, total_sz);
+    stream.read(header_);
 
-        // Make sure we have enough size for options and not less than we should
-        if (TINS_UNLIKELY(head_len() * sizeof(uint32_t) > total_sz || 
-                          head_len() * sizeof(uint32_t) < sizeof(header_))) {
-            malformed(true);
-            return;
-        }
-        const uint8_t* options_end = buffer + head_len() * sizeof(uint32_t);
-        
-        // While the end of the options is not reached read an option
-        while (stream.pointer() < options_end) {
-            option_identifier opt_type = (option_identifier)stream.read<uint8_t>();
-            if (opt_type.number > NOOP) {
-                // Multibyte options with length as second byte
-                const uint32_t option_size = stream.read<uint8_t>();
-                if (TINS_UNLIKELY(option_size < (sizeof(uint8_t) << 1))) {
-                    malformed(true);
-                    return;
-                }
-                // The data size is the option size - the identifier and size fields
-                const uint32_t data_size = option_size - (sizeof(uint8_t) << 1);
-                if (data_size > 0) {
-                    if (stream.pointer() + data_size > options_end) {
-                        malformed(true);
-                        return;
-                    }
-                    options_.push_back(
-                        option(opt_type, stream.pointer(), stream.pointer() + data_size)
-                    );
-                    stream.skip(data_size);
-                }
-                else {
-                    options_.push_back(option(opt_type));
-                }
+    // Make sure we have enough size for options and not less than we should
+    if (TINS_UNLIKELY(head_len() * sizeof(uint32_t) > total_sz || 
+                      head_len() * sizeof(uint32_t) < sizeof(header_))) {
+        malformed(true);
+        return;
+    }
+    const uint8_t* options_end = buffer + head_len() * sizeof(uint32_t);
+    
+    // While the end of the options is not reached read an option
+    while (stream.pointer() < options_end) {
+        option_identifier opt_type = (option_identifier)stream.read<uint8_t>();
+        if (opt_type.number > NOOP) {
+            // Multibyte options with length as second byte
+            const uint32_t option_size = stream.read<uint8_t>();
+            if (TINS_UNLIKELY(option_size < (sizeof(uint8_t) << 1))) {
+                malformed(true);
+                return;
             }
-            else if (opt_type == END) {
-                // If the end option found, we're done
-                if (TINS_UNLIKELY(stream.pointer() != options_end)) {
-                    // Make sure we found the END option at the end of the options list
+            // The data size is the option size - the identifier and size fields
+            const uint32_t data_size = option_size - (sizeof(uint8_t) << 1);
+            if (data_size > 0) {
+                if (stream.pointer() + data_size > options_end) {
                     malformed(true);
                     return;
                 }
-                break;
+                options_.push_back(
+                    option(opt_type, stream.pointer(), stream.pointer() + data_size)
+                );
+                stream.skip(data_size);
             }
             else {
                 options_.push_back(option(opt_type));
             }
         }
-    }
-    catch (const insufficient_data &) {
-        malformed(true);
-        return;
+        else if (opt_type == END) {
+            // If the end option found, we're done
+            if (TINS_UNLIKELY(stream.pointer() != options_end)) {
+                // Make sure we found the END option at the end of the options list
+                malformed(true);
+                return;
+            }
+            break;
+        }
+        else {
+            options_.push_back(option(opt_type));
+        }
     }
 
     if (stream) {

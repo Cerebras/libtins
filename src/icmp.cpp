@@ -40,7 +40,7 @@
 
 using std::memset;
 
-using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins {
@@ -60,25 +60,19 @@ ICMP::ICMP(Flags flag)
 
 ICMP::ICMP(const uint8_t* buffer, uint32_t total_sz) 
 : orig_timestamp_or_address_mask_(), recv_timestamp_(), trans_timestamp_() {
-    InputMemoryStream stream(buffer, total_sz);
-    try {
-        stream.read(header_);
+    PduInputMemoryStream stream(this, buffer, total_sz);
+    stream.read(header_);
 
-        if (type() == TIMESTAMP_REQUEST || type() == TIMESTAMP_REPLY) {
-            original_timestamp(stream.read<uint32_t>());
-            receive_timestamp(stream.read<uint32_t>());
-            transmit_timestamp(stream.read<uint32_t>());
-        }
-        else if (type() == ADDRESS_MASK_REQUEST || type() == ADDRESS_MASK_REPLY) {
-            address_mask(address_type(stream.read<uint32_t>()));
-        }
-        // Attempt to parse ICMP extensions
-        try_parse_extensions(stream);
+    if (type() == TIMESTAMP_REQUEST || type() == TIMESTAMP_REPLY) {
+        original_timestamp(stream.read<uint32_t>());
+        receive_timestamp(stream.read<uint32_t>());
+        transmit_timestamp(stream.read<uint32_t>());
     }
-    catch (const insufficient_data &) {
-        malformed(true);
-        return;
+    else if (type() == ADDRESS_MASK_REQUEST || type() == ADDRESS_MASK_REPLY) {
+        address_mask(address_type(stream.read<uint32_t>()));
     }
+    // Attempt to parse ICMP extensions
+    try_parse_extensions(stream);
 
     if (stream) {
         inner_pdu(new RawPDU(stream.pointer(), stream.size()));
@@ -292,7 +286,7 @@ uint32_t ICMP::get_adjusted_inner_pdu_size() const {
     return Internals::get_padded_icmp_inner_pdu_size(inner_pdu(), sizeof(uint32_t));
 }
 
-void ICMP::try_parse_extensions(InputMemoryStream& stream) {
+void ICMP::try_parse_extensions(PduInputMemoryStream& stream) {
     // Check if this is one of the types defined in RFC 4884
     if (are_extensions_allowed()) {
         Internals::try_parse_icmp_extensions(stream, length() * sizeof(uint32_t), 

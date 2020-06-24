@@ -33,7 +33,7 @@
 #include <cstring>
 #include <tins/memory_helpers.h>
 
-using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins {
@@ -48,7 +48,7 @@ const address_type& src_hw_addr)
 
 Dot11Beacon::Dot11Beacon(const uint8_t* buffer, uint32_t total_sz) 
 : Dot11ManagementFrame(buffer, total_sz) {
-    InputMemoryStream stream(buffer, total_sz);
+    PduInputMemoryStream stream(this, buffer, total_sz);
     stream.skip(management_frame_size());
     stream.read(body_);
     parse_tagged_parameters(stream);

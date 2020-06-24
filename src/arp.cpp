@@ -35,7 +35,7 @@
 #include <tins/exceptions.h>
 #include <tins/memory_helpers.h>
 
-using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins {
@@ -63,14 +63,8 @@ ARP::ARP(ipaddress_type target_ip,
 }
 
 ARP::ARP(const uint8_t* buffer, uint32_t total_sz) {
-    InputMemoryStream stream(buffer, total_sz);
-    try {
-        stream.read(header_);
-    }
-    catch (const insufficient_data &) {
-        malformed(true);
-        return;
-    }
+    PduInputMemoryStream stream(this, buffer, total_sz);
+    stream.read(header_);
     if (stream) {
         inner_pdu(new RawPDU(stream.pointer(), stream.size()));
     }

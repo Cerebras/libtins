@@ -34,7 +34,7 @@
 
 using std::copy;
 
-using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins{
@@ -46,14 +46,8 @@ BootP::BootP()
 
 BootP::BootP(const uint8_t* buffer, uint32_t total_sz, uint32_t vend_field_size) 
 : vend_(vend_field_size) {
-    InputMemoryStream stream(buffer, total_sz);
-    try {
-        stream.read(bootp_);
-    }
-    catch (const insufficient_data &) {
-        malformed(true);
-        return;
-    }
+    PduInputMemoryStream stream(this, buffer, total_sz);
+    stream.read(bootp_);
     
     if (!stream.can_read(vend_field_size)) {
         malformed(true);

@@ -36,7 +36,7 @@
 using std::memcpy;
 using std::copy;
 
-using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins {
@@ -47,14 +47,8 @@ IPSecAH::IPSecAH()
 }
 
 IPSecAH::IPSecAH(const uint8_t* buffer, uint32_t total_sz) {
-    InputMemoryStream stream(buffer, total_sz);
-    try {
-        stream.read(header_);
-    }
-    catch (const insufficient_data &) {
-        malformed(true);
-        return;
-    }
+    PduInputMemoryStream stream(this, buffer, total_sz);
+    stream.read(header_);
 
     const uint32_t ah_len = 4 * (static_cast<uint16_t>(length()) + 2);
     if (ah_len < sizeof(header_)) {
@@ -121,7 +115,7 @@ IPSecESP::IPSecESP()
 }
 
 IPSecESP::IPSecESP(const uint8_t* buffer, uint32_t total_sz) {
-    InputMemoryStream stream(buffer, total_sz);
+    PduInputMemoryStream stream(this, buffer, total_sz);
     stream.read(header_);
     if (stream) {
         inner_pdu(new RawPDU(stream.pointer(), stream.size()));

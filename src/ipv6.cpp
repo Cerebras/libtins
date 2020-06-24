@@ -47,6 +47,7 @@ using std::make_pair;
 using std::vector;
 
 using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins {
@@ -121,14 +122,8 @@ IPv6::IPv6(address_type ip_dst, address_type ip_src, PDU* /*child*/)
 }
 
 IPv6::IPv6(const uint8_t* buffer, uint32_t total_sz) {
-    InputMemoryStream stream(buffer, total_sz);
-    try {
-        stream.read(header_);
-    }
-    catch (const insufficient_data &) {
-        malformed(true);
-        return;
-    }
+    PduInputMemoryStream stream(this, buffer, total_sz);
+    stream.read(header_);
     uint8_t current_header = header_.next_header;
     uint32_t actual_payload_length = payload_length();
     bool is_payload_fragmented = false;
@@ -151,7 +146,7 @@ IPv6::IPv6(const uint8_t* buffer, uint32_t total_sz) {
             add_header(ext_header(current_header, payload_size, stream.pointer()));
             if (actual_payload_length == 0u && current_header == HOP_BY_HOP) {
                 // could be a jumbogram, look for Jumbo Payload Option
-                InputMemoryStream options(stream.pointer(), payload_size);
+                PduInputMemoryStream options(this, stream.pointer(), payload_size);
                 while (options) {
                     const uint8_t opt_type = options.read<uint8_t>();
                     if (opt_type == PAD_1) {

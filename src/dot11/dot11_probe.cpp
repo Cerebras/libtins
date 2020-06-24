@@ -34,7 +34,7 @@
 #include <cstring>
 #include <tins/memory_helpers.h>
 
-using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins {
@@ -49,7 +49,7 @@ Dot11ProbeRequest::Dot11ProbeRequest(const address_type& dst_hw_addr,
 
 Dot11ProbeRequest::Dot11ProbeRequest(const uint8_t* buffer, uint32_t total_sz) 
 : Dot11ManagementFrame(buffer, total_sz) {
-    InputMemoryStream stream(buffer, total_sz);
+    PduInputMemoryStream stream(this, buffer, total_sz);
     stream.skip(management_frame_size());
     parse_tagged_parameters(stream);
 }
@@ -64,7 +64,7 @@ Dot11ProbeResponse::Dot11ProbeResponse(const address_type& dst_hw_addr,
 
 Dot11ProbeResponse::Dot11ProbeResponse(const uint8_t* buffer, uint32_t total_sz) 
 : Dot11ManagementFrame(buffer, total_sz) {
-    InputMemoryStream stream(buffer, total_sz);
+    PduInputMemoryStream stream(this, buffer, total_sz);
     stream.skip(management_frame_size());
     stream.read(body_);
     parse_tagged_parameters(stream);

@@ -47,7 +47,7 @@
 #include <tins/memory_helpers.h>
 #include <tins/detail/pdu_helpers.h>
 
-using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins {
@@ -72,14 +72,8 @@ EthernetII::EthernetII(const address_type& dst_hw_addr,
 }
 
 EthernetII::EthernetII(const uint8_t* buffer, uint32_t total_sz) {
-    InputMemoryStream stream(buffer, total_sz);
-    try {
-        stream.read(header_);
-    }
-    catch (const insufficient_data &) {
-        malformed(true);
-        return;
-    }
+    PduInputMemoryStream stream(this, buffer, total_sz);
+    stream.read(header_);
     // If there's any size left
     if (stream) {
         inner_pdu(

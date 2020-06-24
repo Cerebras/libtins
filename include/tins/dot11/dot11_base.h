@@ -42,7 +42,7 @@
 
 namespace Tins {
 namespace Memory {
-class InputMemoryStream;
+class PduInputMemoryStream;
 class OutputMemoryStream;
 } // Memory
 
@@ -525,7 +525,7 @@ public:
 protected:
     virtual void write_ext_header(Memory::OutputMemoryStream& stream);
     virtual void write_fixed_parameters(Memory::OutputMemoryStream& stream);
-    void parse_tagged_parameters(Memory::InputMemoryStream& stream);
+    void parse_tagged_parameters(Memory::PduInputMemoryStream& stream);
     void add_tagged_option(OptionTypes opt, uint8_t len, const uint8_t* val);
 protected:
     /**

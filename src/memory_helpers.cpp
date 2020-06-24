@@ -40,16 +40,16 @@ namespace Memory {
 // InputMemoryStream
 
 void InputMemoryStream::read(vector<uint8_t>& value, size_t count) {
-    if (!can_read(count)) {
-        throw insufficient_data();
+    if (!check_can_read(count)) {
+        return;
     }
     value.assign(pointer(), pointer() + count);
     skip(count);
 }
 
 void InputMemoryStream::read(HWAddress<6>& address) {
-    if (!can_read(address.size())) {
-        throw insufficient_data();
+    if (!check_can_read(address.size())) {
+        return;
     }
     address = pointer();
     skip(address.size());
@@ -60,8 +60,8 @@ void InputMemoryStream::read(IPv4Address& address) {
 }
 
 void InputMemoryStream::read(IPv6Address& address) {
-    if (!can_read(IPv6Address::address_size)) {
-        throw insufficient_data();
+    if (!check_can_read(IPv6Address::address_size)) {
+        return;
     }
     address = pointer();
     skip(IPv6Address::address_size);
