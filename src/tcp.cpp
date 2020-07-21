@@ -120,7 +120,6 @@ TCP::TCP(const uint8_t* buffer, uint32_t total_sz) {
             stream.skip(len);
         }
     }
-
     // If we still have any bytes left
     if (stream) {
         inner_pdu(new RawPDU(stream.pointer(), stream.size()));

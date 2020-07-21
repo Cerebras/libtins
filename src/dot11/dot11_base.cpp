@@ -51,6 +51,7 @@
 
 using std::vector;
 
+using Tins::Memory::InputMemoryStream;
 using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
@@ -79,7 +80,7 @@ void Dot11::write_ext_header(Memory::OutputMemoryStream& /*stream*/) {
 void Dot11::write_fixed_parameters(Memory::OutputMemoryStream& /*stream*/) {
 }
 
-void Dot11::parse_tagged_parameters(PduInputMemoryStream& stream) {
+void Dot11::parse_tagged_parameters(InputMemoryStream& stream) {
     if (stream) {
         while (stream.size() >= 2) {
             OptionTypes opcode = static_cast<OptionTypes>(stream.read<uint8_t>());

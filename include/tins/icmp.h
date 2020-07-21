@@ -51,7 +51,7 @@
 namespace Tins {
 namespace Memory {
 
-class PduInputMemoryStream;
+class InputMemoryStream;
 
 } // Memory
 
@@ -496,7 +496,7 @@ private:
     void checksum(uint16_t new_check);    
     void write_serialization(uint8_t* buffer, uint32_t total_sz);
     uint32_t get_adjusted_inner_pdu_size() const;
-    void try_parse_extensions(Memory::PduInputMemoryStream& stream);
+    void try_parse_extensions(Memory::InputMemoryStream& stream);
     bool are_extensions_allowed() const;
 
     icmp_header header_;

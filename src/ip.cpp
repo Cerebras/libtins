@@ -125,7 +125,6 @@ IP::IP(const uint8_t* buffer, uint32_t total_sz) {
             options_.push_back(option(opt_type));
         }
     }
-
     if (stream) {
         // Don't avoid consuming more than we should if tot_len is 0,
         // since this is the case when using TCP segmentation offload

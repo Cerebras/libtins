@@ -40,6 +40,7 @@
 
 using std::memset;
 
+using Tins::Memory::InputMemoryStream;
 using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
@@ -73,7 +74,6 @@ ICMP::ICMP(const uint8_t* buffer, uint32_t total_sz)
     }
     // Attempt to parse ICMP extensions
     try_parse_extensions(stream);
-
     if (stream) {
         inner_pdu(new RawPDU(stream.pointer(), stream.size()));
     }
@@ -286,7 +286,7 @@ uint32_t ICMP::get_adjusted_inner_pdu_size() const {
     return Internals::get_padded_icmp_inner_pdu_size(inner_pdu(), sizeof(uint32_t));
 }
 
-void ICMP::try_parse_extensions(PduInputMemoryStream& stream) {
+void ICMP::try_parse_extensions(InputMemoryStream& stream) {
     // Check if this is one of the types defined in RFC 4884
     if (are_extensions_allowed()) {
         Internals::try_parse_icmp_extensions(stream, length() * sizeof(uint32_t), 

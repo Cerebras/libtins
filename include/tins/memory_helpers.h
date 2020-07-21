@@ -117,7 +117,6 @@ public:
     virtual bool check_can_read(size_t byte_count) const {
         if (!can_read(byte_count)) {
             throw insufficient_data();
-            return false;
         }
         return true;
     }
@@ -150,7 +149,7 @@ public:
     void read(HWAddress<6>& address);
     void read(IPv4Address& address);
     void read(IPv6Address& address);
-protected:
+private:
     const uint8_t* buffer_;
     size_t size_;
 };
