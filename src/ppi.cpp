@@ -40,19 +40,13 @@
 #include <tins/memory_helpers.h>
 #include <tins/detail/pdu_helpers.h>
 
-using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 
 namespace Tins {
 
 PPI::PPI(const uint8_t* buffer, uint32_t total_sz) {
-    InputMemoryStream stream(buffer, total_sz);
-    try {
-        stream.read(header_);
-    }
-    catch (const insufficient_data &) {
-        malformed(true);
-        return;
-    }
+    PduInputMemoryStream stream(this, buffer, total_sz);
+    stream.read(header_);
     if (length() > total_sz || length() < sizeof(header_)) {
         malformed(true);
         return;

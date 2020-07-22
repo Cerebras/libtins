@@ -51,6 +51,7 @@ using std::memcmp;
 using std::vector;
 
 using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins {
@@ -74,14 +75,8 @@ IP::IP(address_type ip_dst, address_type ip_src) {
 }
 
 IP::IP(const uint8_t* buffer, uint32_t total_sz) {
-    InputMemoryStream stream(buffer, total_sz);
-    try {
-        stream.read(header_);
-    }
-    catch (const insufficient_data &) {
-        malformed(true);
-        return;
-    }
+    PduInputMemoryStream stream(this, buffer, total_sz);
+    stream.read(header_);
 
     // Make sure we have enough size for options and not less than we should
     if (TINS_UNLIKELY(head_len() * sizeof(uint32_t) > total_sz || 

@@ -52,6 +52,7 @@
 using std::vector;
 
 using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins {
@@ -69,14 +70,8 @@ Dot11::Dot11(const dot11_header* /*header_ptr*/)
 
 Dot11::Dot11(const uint8_t* buffer, uint32_t total_sz) 
 : options_size_(0) {
-    InputMemoryStream stream(buffer, total_sz);
-    try {
-        stream.read(header_);
-    }
-    catch (const insufficient_data &) {
-        malformed(true);
-        return;
-    }
+    PduInputMemoryStream stream(this, buffer, total_sz);
+    stream.read(header_);
 }
 
 void Dot11::write_ext_header(Memory::OutputMemoryStream& /*stream*/) {

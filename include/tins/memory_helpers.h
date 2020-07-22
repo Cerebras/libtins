@@ -35,6 +35,7 @@
 #include <vector>
 #include <tins/exceptions.h>
 #include <tins/endianness.h>
+#include <tins/pdu.h>
 
 namespace Tins {
 
@@ -94,14 +95,14 @@ public:
 
     template <typename T>
     void read(T& value) {
-        if (!can_read(sizeof(value))) {
-            throw insufficient_data();
+        if (!check_can_read(sizeof(value))) {
+            return;
         }
         read_value(buffer_, value);
         skip(sizeof(value));
     }
 
-    void skip(size_t size) {
+    virtual void skip(size_t size) {
         if (TINS_UNLIKELY(size > size_)) {
             throw insufficient_data();
         }
@@ -113,9 +114,16 @@ public:
         return TINS_LIKELY(size_ >= byte_count);
     }
 
-    void read(void* output_buffer, size_t output_buffer_size) {
-        if (!can_read(output_buffer_size)) {
+    virtual bool check_can_read(size_t byte_count) const {
+        if (!can_read(byte_count)) {
             throw insufficient_data();
+        }
+        return true;
+    }
+
+    void read(void* output_buffer, size_t output_buffer_size) {
+        if (!check_can_read(output_buffer_size)) {
+            return;
         }
         read_data(buffer_, (uint8_t*)output_buffer, output_buffer_size);
         skip(output_buffer_size);
@@ -144,6 +152,35 @@ public:
 private:
     const uint8_t* buffer_;
     size_t size_;
+};
+
+class PduInputMemoryStream : public InputMemoryStream {
+public:
+    PduInputMemoryStream(PDU* pdu, const uint8_t* buffer, size_t total_sz)
+    : InputMemoryStream(buffer, total_sz), pdu_(pdu) {
+    }
+
+    virtual bool check_can_read(size_t byte_count) const {
+        if (can_read(byte_count)) {
+            return true;
+        }
+        else {
+            pdu_->malformed(true);
+            return false;
+        }
+    }
+
+    virtual void skip(size_t size) {
+        try {
+            InputMemoryStream::skip(size);
+        }
+        catch (const insufficient_data &) {
+            pdu_->malformed(true);
+        }
+    }
+
+private:
+    PDU *pdu_;
 };
 
 class OutputMemoryStream {

@@ -41,6 +41,7 @@
 using std::memset;
 
 using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins {
@@ -60,14 +61,9 @@ ICMP::ICMP(Flags flag)
 
 ICMP::ICMP(const uint8_t* buffer, uint32_t total_sz) 
 : orig_timestamp_or_address_mask_(), recv_timestamp_(), trans_timestamp_() {
-    InputMemoryStream stream(buffer, total_sz);
-    try {
-        stream.read(header_);
-    }
-    catch (const insufficient_data &) {
-        malformed(true);
-        return;
-    }
+    PduInputMemoryStream stream(this, buffer, total_sz);
+    stream.read(header_);
+
     if (type() == TIMESTAMP_REQUEST || type() == TIMESTAMP_REPLY) {
         original_timestamp(stream.read<uint32_t>());
         receive_timestamp(stream.read<uint32_t>());

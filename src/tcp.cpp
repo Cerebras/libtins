@@ -40,7 +40,7 @@
 using std::vector;
 using std::pair;
 
-using Tins::Memory::InputMemoryStream;
+using Tins::Memory::PduInputMemoryStream;
 using Tins::Memory::OutputMemoryStream;
 
 namespace Tins {
@@ -64,14 +64,9 @@ TCP::TCP(uint16_t dport, uint16_t sport)
 }
 
 TCP::TCP(const uint8_t* buffer, uint32_t total_sz) {
-    InputMemoryStream stream(buffer, total_sz);
-    try {
-        stream.read(header_);
-    }
-    catch (const insufficient_data &) {
-        malformed(true);
-        return;
-    }
+    PduInputMemoryStream stream(this, buffer, total_sz);
+    stream.read(header_);
+
     // Check that we have at least the amount of bytes we need and not less
     if (TINS_UNLIKELY(data_offset() * sizeof(uint32_t) > total_sz || 
                       data_offset() * sizeof(uint32_t) < sizeof(tcp_header))) {
