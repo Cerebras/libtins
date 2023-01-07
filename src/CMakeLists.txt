@@ -32,6 +32,7 @@ set(SOURCES
     ethernetII.cpp
     handshake_capturer.cpp
     hw_address.cpp
+    ib_bth.cpp
     icmp_extension.cpp
     icmp.cpp
     icmpv6.cpp
@@ -103,6 +104,7 @@ set(HEADERS
     ${LIBTINS_INCLUDE_DIR}/tins/ethernetII.h
     ${LIBTINS_INCLUDE_DIR}/tins/exceptions.h
     ${LIBTINS_INCLUDE_DIR}/tins/hw_address.h
+    ${LIBTINS_INCLUDE_DIR}/tins/ib_bth.h
     ${LIBTINS_INCLUDE_DIR}/tins/icmp_extension.h
     ${LIBTINS_INCLUDE_DIR}/tins/icmp.h
     ${LIBTINS_INCLUDE_DIR}/tins/icmpv6.h
