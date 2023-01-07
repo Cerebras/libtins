@@ -110,14 +110,14 @@ inline uint32_t do_change_endian(uint32_t data) {
  *
  * \param data The data to convert.
  */
- inline uint64_t do_change_endian(uint64_t data) {
+inline uint64_t do_change_endian(uint64_t data) {
     #ifdef TINS_NO_BYTE_SWAP_INTRINSICS
         return (((uint64_t)(do_change_endian((uint32_t)(data & 0xffffffff))) << 32) |
                (do_change_endian(((uint32_t)(data >> 32)))));
     #else
         return TINS_BYTE_SWAP_64(data);
     #endif
- }
+}
  
 /**
  * \cond
@@ -162,10 +162,10 @@ struct conversion_dispatcher<sizeof(uint64_t)>
  *
  * \param data The data to convert.
  */ 
- template<typename T>
- inline T change_endian(T data) {
-     return conversion_dispatcher<sizeof(T)>::dispatch(data);
- }
+template<typename T>
+inline T change_endian(T data) {
+    return conversion_dispatcher<sizeof(T)>::dispatch(data);
+}
 
 #if TINS_IS_LITTLE_ENDIAN
     /** 

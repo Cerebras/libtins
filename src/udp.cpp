@@ -34,6 +34,7 @@
 #include <tins/ipv6.h>
 #include <tins/rawpdu.h>
 #include <tins/exceptions.h>
+#include <tins/pdu_allocator.h>
 #include <tins/memory_helpers.h>
 #include <tins/utils/checksum_utils.h>
 
@@ -59,7 +60,18 @@ UDP::UDP(const uint8_t* buffer, uint32_t total_sz)  {
     PduInputMemoryStream stream(this, buffer, total_sz);
     stream.read(header_);
     if (stream) {
-        inner_pdu(new RawPDU(stream.pointer(), stream.size()));
+        PDU* new_pdu = nullptr;
+        if ((new_pdu = Internals::allocate<UDP>(
+                 {Allocators::SRC_PORT, sport()}, stream.pointer(), stream.size()))) {
+        }
+        else if ((new_pdu = Internals::allocate<UDP>(
+                      {Allocators::DST_PORT, dport()}, stream.pointer(), stream.size()))) {
+        }
+        else {
+            new_pdu = new RawPDU(stream.pointer(), stream.size());
+        }
+
+        inner_pdu(new_pdu);
     }
 }
 
@@ -122,6 +134,14 @@ void UDP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
     header_.check = 0;
     if (inner_pdu()) {
         length(static_cast<uint16_t>(sizeof(udp_header) + inner_pdu()->size()));
+        if (Internals::pdu_type_registered<UDP>(inner_pdu()->pdu_type())) {
+            auto pdu_id = Internals::pdu_type_to_id<UDP>(inner_pdu()->pdu_type());
+            if (pdu_id.dir == Allocators::SRC_PORT) {
+                sport(pdu_id.port);
+            } else {
+                dport(pdu_id.port);
+            }
+        }
     }
     else {
         length(static_cast<uint16_t>(sizeof(udp_header)));

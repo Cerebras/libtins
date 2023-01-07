@@ -34,6 +34,7 @@
 #include <tins/constants.h>
 #include <tins/rawpdu.h>
 #include <tins/exceptions.h>
+#include <tins/pdu_allocator.h>
 #include <tins/memory_helpers.h>
 #include <tins/utils/checksum_utils.h>
 
@@ -120,9 +121,21 @@ TCP::TCP(const uint8_t* buffer, uint32_t total_sz) {
             stream.skip(len);
         }
     }
+    
     // If we still have any bytes left
     if (stream) {
-        inner_pdu(new RawPDU(stream.pointer(), stream.size()));
+        PDU* new_pdu = nullptr;
+        if ((new_pdu = Internals::allocate<TCP>(
+                 {Allocators::SRC_PORT, sport()}, stream.pointer(), stream.size()))) {
+        }
+        else if ((new_pdu = Internals::allocate<TCP>(
+                      {Allocators::DST_PORT, dport()}, stream.pointer(), stream.size()))) {
+        }
+        else {
+            new_pdu = new RawPDU(stream.pointer(), stream.size());
+        }
+        
+        inner_pdu(new_pdu);
     }
 }
 
@@ -353,6 +366,18 @@ uint16_t TCP::calculate_checksum(const uint8_t* buffer,
 
 void TCP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
     OutputMemoryStream stream(buffer, total_sz);
+
+    if (inner_pdu()) {
+        if (Internals::pdu_type_registered<TCP>(inner_pdu()->pdu_type())) {
+            auto pdu_id = Internals::pdu_type_to_id<TCP>(inner_pdu()->pdu_type());
+            if (pdu_id.dir == Allocators::SRC_PORT) {
+                sport(pdu_id.port);
+            } else {
+                dport(pdu_id.port);
+            }
+        }
+    }
+    
     const uint32_t options_size = calculate_options_size();
     const uint32_t padded_options_size = pad_options_size(options_size);
 
