@@ -45,7 +45,6 @@
 #include <tins/memory_helpers.h>
 #include <tins/utils/checksum_utils.h>
 #include <tins/detail/pdu_helpers.h>
-#include <tins/pdu_allocator.h>
 
 using std::memcmp;
 using std::vector;

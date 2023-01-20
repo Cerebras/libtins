@@ -31,6 +31,7 @@
 #define TINS_PDU_ALLOCATOR_H
 
 #include <map>
+#include <tuple>
 #include <tins/pdu.h>
 
 namespace Tins {
@@ -43,6 +44,18 @@ class Dot1Q;
 class SLL;
 class IP;
 class IPv6;
+class TCP;
+class UDP;
+
+namespace Allocators {
+/**
+ * \brief Constants for port direction, used in tag mappers for TCP and UDP.
+ */
+enum PortDir {
+    SRC_PORT,
+    DST_PORT
+};
+}
 
 namespace Internals {
 
@@ -98,6 +111,17 @@ struct pdu_tag {
 template<typename PDUType>
 struct pdu_tag_mapper;
 
+template<typename PortType>
+struct DirAndPort {
+    Allocators::PortDir dir;
+    PortType port;
+};
+
+template<typename PortType>
+bool operator<(DirAndPort<PortType> const& lhs, DirAndPort<PortType> const& rhs) {
+    return std::tie(lhs.dir, lhs.port) < std::tie(rhs.dir, rhs.port);
+}
+
 #define TINS_GENERATE_TAG_MAPPER(pdu, id_type) \
 template<> \
 struct pdu_tag_mapper<pdu> { \
@@ -110,6 +134,8 @@ TINS_GENERATE_TAG_MAPPER(SLL, uint16_t)
 TINS_GENERATE_TAG_MAPPER(Dot1Q, uint16_t)
 TINS_GENERATE_TAG_MAPPER(IP, uint8_t)
 TINS_GENERATE_TAG_MAPPER(IPv6, uint8_t)
+TINS_GENERATE_TAG_MAPPER(TCP, DirAndPort<uint16_t>)
+TINS_GENERATE_TAG_MAPPER(UDP, DirAndPort<uint16_t>)
 
 #undef TINS_GENERATE_TAG_MAPPER
 
