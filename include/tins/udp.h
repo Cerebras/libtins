@@ -151,6 +151,11 @@ public:
     void length(uint16_t new_len);
 
     /**
+     * \brief Set whether checksum is used or not
+     * \param checksum true if used, false if not (transmited as 0)
+     */
+    void use_checksum(bool new_use_checksum);
+    /**
      * \brief Check whether ptr points to a valid response for this PDU.
      *
      * This compares the source and destination ports in the provided
@@ -194,6 +199,7 @@ private:
     void write_serialization(uint8_t* buffer, uint32_t total_sz);
 
     udp_header header_;
+    bool use_checksum_;
 };
 
 } // Tins

@@ -54,6 +54,7 @@ UDP::UDP(uint16_t dport, uint16_t sport)
 : header_() {
     this->dport(dport);
     this->sport(sport);
+    this->use_checksum(true);
 }
 
 UDP::UDP(const uint8_t* buffer, uint32_t total_sz)  {
@@ -73,6 +74,7 @@ UDP::UDP(const uint8_t* buffer, uint32_t total_sz)  {
 
         inner_pdu(new_pdu);
     }
+    this->use_checksum(true);
 }
 
 void UDP::dport(uint16_t new_dport) {
@@ -85,6 +87,10 @@ void UDP::sport(uint16_t new_sport) {
 
 void UDP::length(uint16_t new_len) {
     header_.len = Endian::host_to_be(new_len);
+}
+
+void UDP::use_checksum(bool new_use_checksum) {
+    use_checksum_ = new_use_checksum;
 }
 
 uint32_t UDP::header_size() const {
@@ -171,9 +177,15 @@ void UDP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
     while (checksum >> 16) {
         checksum = (checksum & 0xffff)+(checksum >> 16);
     }
-    header_.check = ~checksum;
-    // If checksum is 0, it has to be set to 0xffff
-    header_.check = (header_.check == 0) ? 0xffff : header_.check;
+    if (use_checksum_) {
+        header_.check = ~checksum;
+        // If checksum is 0, it has to be set to 0xffff
+        header_.check = (header_.check == 0) ? 0xffff : header_.check;
+    }
+    else {
+        //Unused checksum transmitted as 0
+        header_.check = 0;
+    }
     ((udp_header*)buffer)->check = header_.check;
 }
 
