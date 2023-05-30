@@ -91,6 +91,8 @@ void UDP::length(uint16_t new_len) {
 
 void UDP::use_checksum(bool new_use_checksum) {
     use_checksum_ = new_use_checksum;
+    if (!new_use_checksum)
+        header_.check = 0;
 }
 
 uint32_t UDP::header_size() const {

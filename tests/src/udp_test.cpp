@@ -12,7 +12,7 @@ using namespace Tins;
 class UDPTest : public testing::Test {
 public:
     static const uint8_t expected_packet[], checksum_packet[], 
-                         checksum_packet2[], checksum_packet3[];
+                         checksum_packet2[], checksum_packet3[], rocev2_packet[];
     
     void test_equals(const UDP& udp1, const UDP& udp2);
 };
@@ -47,6 +47,20 @@ const uint8_t UDPTest::checksum_packet3[] = {
     0, 20, 165, 53, 119, 224, 44, 240, 238, 33, 128, 46, 8, 0, 69, 184, 0, 
     200, 127, 204, 0, 0, 28, 17, 24, 185, 192, 168, 6, 224, 198, 199, 118, 
     152, 213, 50, 192, 0, 0, 180, 255, 255, 128, 0, 0, 29, 86, 130, 177, 
+    157, 1, 46, 0, 0, 0, 0, 7, 111, 0, 0, 52, 134, 86, 130, 177, 132, 0, 
+    5, 150, 253, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+const uint8_t UDPTest::rocev2_packet[] = {
+    0, 20, 165, 53, 119, 224, 44, 240, 238, 33, 128, 46, 8, 0, 69, 184, 0, 
+    200, 127, 204, 0, 0, 28, 17, 24, 185, 192, 168, 6, 224, 198, 199, 118, 
+    152, 213, 50, 18, 183, 0, 180, 0, 0, 128, 0, 0, 29, 86, 130, 177, 
     157, 1, 46, 0, 0, 0, 0, 7, 111, 0, 0, 52, 134, 86, 130, 177, 132, 0, 
     5, 150, 253, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
@@ -117,6 +131,24 @@ TEST_F(UDPTest, ChecksumCheck3) {
         buffer
     );
     EXPECT_EQ(0xffff, pkt.rfind_pdu<UDP>().checksum());
+}
+
+// UDP checksum is 0 for RoCE v2
+TEST_F(UDPTest, ChecksumCheckRoCE) {
+    EthernetII pkt(rocev2_packet, sizeof(rocev2_packet));
+    UDP& udp = pkt.rfind_pdu<UDP>();
+    udp.use_checksum(false);
+
+    PDU::serialization_type buffer = pkt.serialize();
+    EXPECT_EQ(
+        UDP::serialization_type(
+            rocev2_packet, 
+            rocev2_packet + sizeof(rocev2_packet)
+        ),
+        buffer
+    );
+
+    EXPECT_EQ(0x0, udp.checksum());
 }
 
 TEST_F(UDPTest, CopyConstructor) {
