@@ -151,10 +151,11 @@ public:
     void length(uint16_t new_len);
 
     /**
-     * \brief Set whether checksum is used or not
-     * \param checksum true if used, false if not (transmited as 0)
+     * \brief Set checksum value and disable automatic calculation 
+     * of checksum during write serialization.
+     * \param checksum The new checksum value
      */
-    void use_checksum(bool new_use_checksum);
+    void checksum(uint16_t new_checksum);
     /**
      * \brief Check whether ptr points to a valid response for this PDU.
      *
@@ -199,7 +200,7 @@ private:
     void write_serialization(uint8_t* buffer, uint32_t total_sz);
 
     udp_header header_;
-    bool use_checksum_;
+    bool auto_set_checksum;
 };
 
 } // Tins

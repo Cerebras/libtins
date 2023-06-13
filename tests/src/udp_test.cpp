@@ -133,14 +133,17 @@ TEST_F(UDPTest, ChecksumCheck3) {
     EXPECT_EQ(0xffff, pkt.rfind_pdu<UDP>().checksum());
 }
 
-// UDP checksum is 0 for RoCE v2
+// UDP checksum is 0 for RoCE v2, test overwriting it
 TEST_F(UDPTest, ChecksumCheckRoCE) {
     EthernetII pkt(rocev2_packet, sizeof(rocev2_packet));
     UDP& udp = pkt.rfind_pdu<UDP>();
-    udp.use_checksum(false);
+
+    EXPECT_EQ(0x0, pkt.rfind_pdu<UDP>().checksum());
+    udp.checksum(0x1234);
+    EXPECT_EQ(0x1234, pkt.rfind_pdu<UDP>().checksum());
 
     PDU::serialization_type buffer = pkt.serialize();
-    EXPECT_EQ(
+    EXPECT_NE(
         UDP::serialization_type(
             rocev2_packet, 
             rocev2_packet + sizeof(rocev2_packet)
@@ -148,7 +151,7 @@ TEST_F(UDPTest, ChecksumCheckRoCE) {
         buffer
     );
 
-    EXPECT_EQ(0x0, udp.checksum());
+    EXPECT_EQ(0x1234, udp.checksum());
 }
 
 TEST_F(UDPTest, CopyConstructor) {
