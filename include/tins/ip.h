@@ -380,12 +380,6 @@ public:
     }
 
     /**
-     * \brief Setter for the checksum field. Disables calculation
-     * during write serialization
-     */
-    void checksum(uint16_t new_check);
-
-    /**
      * \brief Calculate the correct checksum value.
      *
      * This will calculate and return the correct checksum value across all
@@ -499,6 +493,12 @@ public:
      * \param new_protocol The new protocol.
      */
     void protocol(uint8_t new_protocol);
+
+    /**
+     * \brief Setter for the checksum field. Disables calculation
+     * during write serialization
+     */
+    void checksum(uint16_t new_check);
 
     /**
      * \brief Setter for the source address field.
