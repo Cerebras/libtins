@@ -51,13 +51,13 @@ PDU::metadata UDP::extract_metadata(const uint8_t* /*buffer*/, uint32_t total_sz
 }
 
 UDP::UDP(uint16_t dport, uint16_t sport)
-: header_() {
+: header_(), auto_set_checksum_(true) {
     this->dport(dport);
     this->sport(sport);
-    this->auto_set_checksum = true;
 }
 
-UDP::UDP(const uint8_t* buffer, uint32_t total_sz)  {
+UDP::UDP(const uint8_t* buffer, uint32_t total_sz)  
+: auto_set_checksum_(true) {
     PduInputMemoryStream stream(this, buffer, total_sz);
     stream.read(header_);
     if (stream) {
@@ -74,7 +74,6 @@ UDP::UDP(const uint8_t* buffer, uint32_t total_sz)  {
 
         inner_pdu(new_pdu);
     }
-    this->auto_set_checksum = true;
 }
 
 void UDP::dport(uint16_t new_dport) {
@@ -90,7 +89,7 @@ void UDP::length(uint16_t new_len) {
 }
 
 void UDP::checksum(uint16_t new_checksum) {
-    auto_set_checksum = false;
+    auto_set_checksum_ = false;
     header_.check = Endian::host_to_be(new_checksum);
 }
 
@@ -138,7 +137,7 @@ uint32_t pseudoheader_checksum(IPv4Address source_ip, IPv4Address dest_ip, uint3
 void UDP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
     OutputMemoryStream stream(buffer, total_sz);
     // Set checksum to 0, we'll calculate it at the end
-    if (auto_set_checksum)
+    if (auto_set_checksum_)
         header_.check = 0;
     if (inner_pdu()) {
         length(static_cast<uint16_t>(sizeof(udp_header) + inner_pdu()->size()));
@@ -179,7 +178,7 @@ void UDP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
     while (checksum >> 16) {
         checksum = (checksum & 0xffff)+(checksum >> 16);
     }
-    if (auto_set_checksum) {
+    if (auto_set_checksum_) {
         header_.check = ~checksum;
         // If checksum is 0, it has to be set to 0xffff
         header_.check = (header_.check == 0) ? 0xffff : header_.check;

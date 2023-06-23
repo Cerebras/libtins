@@ -67,15 +67,15 @@ PDU::metadata IP::extract_metadata(const uint8_t *buffer, uint32_t total_sz) {
     return metadata(header->ihl * 4, pdu_flag, next_type);
 }
 
-IP::IP(address_type ip_dst, address_type ip_src) {
+IP::IP(address_type ip_dst, address_type ip_src) : 
+        auto_set_checksum_(true) {
     init_ip_fields();
     this->dst_addr(ip_dst);
     this->src_addr(ip_src); 
-    this->auto_set_checksum = true;
 }
 
-IP::IP(const uint8_t* buffer, uint32_t total_sz) {
-    this->auto_set_checksum = true;
+IP::IP(const uint8_t* buffer, uint32_t total_sz) :
+        auto_set_checksum_(true) {
     PduInputMemoryStream stream(this, buffer, total_sz);
     stream.read(header_);
 
@@ -217,7 +217,7 @@ void IP::protocol(uint8_t new_protocol) {
 
 void IP::checksum(uint16_t new_check) {
     header_.check = Endian::host_to_be(new_check);
-    auto_set_checksum = false;
+    auto_set_checksum_ = false;
 }
 
 uint16_t IP::calculate_checksum() const {
@@ -488,7 +488,7 @@ void IP::write_serialization(uint8_t* buffer, uint32_t total_sz) {
     stream_options(stream, (padded_options_size - options_size));
 
     // Calculate the checksum
-    if (auto_set_checksum) {
+    if (auto_set_checksum_) {
         header_.check = Endian::host_to_be(
             calculate_checksum(buffer, (stream.pointer() - buffer), header_.check));
     }

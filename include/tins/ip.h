@@ -787,7 +787,7 @@ private:
 
     options_type options_;
     ip_header header_;
-    bool auto_set_checksum;
+    bool auto_set_checksum_;
 };
 
 } // Tins

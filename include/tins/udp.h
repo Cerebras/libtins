@@ -156,6 +156,7 @@ public:
      * \param checksum The new checksum value
      */
     void checksum(uint16_t new_checksum);
+
     /**
      * \brief Check whether ptr points to a valid response for this PDU.
      *
@@ -200,7 +201,7 @@ private:
     void write_serialization(uint8_t* buffer, uint32_t total_sz);
 
     udp_header header_;
-    bool auto_set_checksum;
+    bool auto_set_checksum_;
 };
 
 } // Tins
