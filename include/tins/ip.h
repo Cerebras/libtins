@@ -495,6 +495,12 @@ public:
     void protocol(uint8_t new_protocol);
 
     /**
+     * \brief Setter for the checksum field. Disables calculation
+     * during write serialization
+     */
+    void checksum(uint16_t new_check);
+
+    /**
      * \brief Setter for the source address field.
      *
      * \param ip The source address to be set.
@@ -776,12 +782,12 @@ private:
     void stream_options(Memory::OutputMemoryStream &stream, const uint32_t pad_size) const;
     void add_route_option(option_identifier id, const generic_route_option_type& data);
     generic_route_option_type search_route_option(option_identifier id) const;
-    void checksum(uint16_t new_check);
     options_type::const_iterator search_option_iterator(option_identifier id) const;
     options_type::iterator search_option_iterator(option_identifier id);
 
     options_type options_;
     ip_header header_;
+    bool auto_set_checksum_;
 };
 
 } // Tins

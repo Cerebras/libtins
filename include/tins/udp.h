@@ -151,6 +151,13 @@ public:
     void length(uint16_t new_len);
 
     /**
+     * \brief Set checksum value and disable automatic calculation 
+     * of checksum during write serialization.
+     * \param checksum The new checksum value
+     */
+    void checksum(uint16_t new_checksum);
+
+    /**
      * \brief Check whether ptr points to a valid response for this PDU.
      *
      * This compares the source and destination ports in the provided
@@ -194,6 +201,7 @@ private:
     void write_serialization(uint8_t* buffer, uint32_t total_sz);
 
     udp_header header_;
+    bool auto_set_checksum_;
 };
 
 } // Tins
